@@ -29,7 +29,7 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration) extends Actor wi
   import context.dispatcher
 
   private val slackBaseUrl: String = cfg.get[String]("open-spaces-board.storage.slack.api.base-url")
-  private val slackToken: String = cfg.get[String]("open-spaces-board.storage.slack.api.token")
+  private val slackToken: String = cfg.get[Seq[String]]("open-spaces-board.storage.slack.api.token").mkString
   private val slackChannel: String = cfg.get[String]("open-spaces-board.storage.slack.transaction-log.channel")
   private val slackBotId: String = cfg.get[String]("open-spaces-board.storage.slack.transaction-log.botId")
   ws.url(s"${slackBaseUrl}/conversations.history?token=${slackToken}&channel=${slackChannel}&limit=1000").
