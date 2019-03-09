@@ -18,7 +18,7 @@ elmMakeAdmin := {
   import com.typesafe.sbt.web.LineBasedProblem
   import play.sbt.PlayExceptions.CompilationException
 
-  val outputPath: String = "target/elm/admin.js"
+  val outputPath: String = "public/javascripts/admin.js"
   val debugFlag: String =
     if (sys.props.getOrElse("elm.debug", "false").toLowerCase != "true") ""
     else "--debug"
@@ -81,7 +81,7 @@ elmMakeAdmin := {
   }
 }
 
-resourceGenerators in Assets += elmMakeAdmin.taskValue
+sourceGenerators in Assets += elmMakeAdmin.taskValue
 
 val elmMakeBoard = taskKey[Seq[File]]("elm-make-board")
 
@@ -90,7 +90,7 @@ elmMakeBoard := {
   import com.typesafe.sbt.web.LineBasedProblem
   import play.sbt.PlayExceptions.CompilationException
 
-  val outputPath: String = "target/elm/board.js"
+  val outputPath: String = "public/javascripts/board.js"
   val debugFlag: String =
     if (sys.props.getOrElse("elm.debug", "false").toLowerCase != "true") ""
     else "--debug"
@@ -153,4 +153,4 @@ elmMakeBoard := {
   }
 }
 
-resourceGenerators in Assets += elmMakeBoard.taskValue
+sourceGenerators in Assets += elmMakeBoard.taskValue
