@@ -3,6 +3,6 @@
 @main("Open Spaces Board - Admin") {
   <script type="text/javascript" src="@routes.Assets.versioned("javascripts/admin.js")"></script>
   <script type="text/javascript">
-    Elm.Admin.fullscreen();
+    Elm.Admin.fullscreen("ws" + window.location.protocol.substring(4) + window.location.host);
   </script>
 }

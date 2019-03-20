@@ -18,7 +18,8 @@ type alias DataManipulation =
 
 
 type alias Model =
-  { rooms : Set String
+  { webSocketUrl : String
+  , rooms : Set String
   , timeSlots : Set String
   }
 
@@ -28,9 +29,9 @@ type Msg =
 
 
 -- Init
-init : (Model, Cmd Msg)
-init =
-  ( Model Set.empty Set.empty
+init : String -> (Model, Cmd Msg)
+init webSocketBaseUrl =
+  ( Model (webSocketBaseUrl ++ "/store") Set.empty Set.empty
   , Cmd.none
   )
 
@@ -99,7 +100,7 @@ update msg model =
 -- Subscription
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  WebSocket.listen "ws://localhost:9000/store" WebSocketMessage
+  WebSocket.listen model.webSocketUrl WebSocketMessage
 
 
 -- View
@@ -136,9 +137,9 @@ view model =
   ]
 
 
-main : Program Never Model Msg
+main : Program String Model Msg
 main =
-  Html.program
+  Html.programWithFlags
     { init = init
     , update = update
     , subscriptions = subscriptions

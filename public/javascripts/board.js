@@ -9327,14 +9327,20 @@ var _WinterTechForum$open_spaces_board$Board$DataManipulation = F3(
 	function (a, b, c) {
 		return {type_: a, operation: b, key: c};
 	});
-var _WinterTechForum$open_spaces_board$Board$Model = F2(
-	function (a, b) {
-		return {rooms: a, timeSlots: b};
+var _WinterTechForum$open_spaces_board$Board$Model = F3(
+	function (a, b, c) {
+		return {webSocketUrl: a, rooms: b, timeSlots: c};
 	});
-var _WinterTechForum$open_spaces_board$Board$init = {
-	ctor: '_Tuple2',
-	_0: A2(_WinterTechForum$open_spaces_board$Board$Model, _elm_lang$core$Set$empty, _elm_lang$core$Set$empty),
-	_1: _elm_lang$core$Platform_Cmd$none
+var _WinterTechForum$open_spaces_board$Board$init = function (webSocketBaseUrl) {
+	return {
+		ctor: '_Tuple2',
+		_0: A3(
+			_WinterTechForum$open_spaces_board$Board$Model,
+			A2(_elm_lang$core$Basics_ops['++'], webSocketBaseUrl, '/store'),
+			_elm_lang$core$Set$empty,
+			_elm_lang$core$Set$empty),
+		_1: _elm_lang$core$Platform_Cmd$none
+	};
 };
 var _WinterTechForum$open_spaces_board$Board$Remove = {ctor: 'Remove'};
 var _WinterTechForum$open_spaces_board$Board$Add = {ctor: 'Add'};
@@ -9417,10 +9423,10 @@ var _WinterTechForum$open_spaces_board$Board$WebSocketMessage = function (a) {
 	return {ctor: 'WebSocketMessage', _0: a};
 };
 var _WinterTechForum$open_spaces_board$Board$subscriptions = function (model) {
-	return A2(_elm_lang$websocket$WebSocket$listen, 'ws://localhost:9000/store', _WinterTechForum$open_spaces_board$Board$WebSocketMessage);
+	return A2(_elm_lang$websocket$WebSocket$listen, model.webSocketUrl, _WinterTechForum$open_spaces_board$Board$WebSocketMessage);
 };
-var _WinterTechForum$open_spaces_board$Board$main = _elm_lang$html$Html$program(
-	{init: _WinterTechForum$open_spaces_board$Board$init, update: _WinterTechForum$open_spaces_board$Board$update, subscriptions: _WinterTechForum$open_spaces_board$Board$subscriptions, view: _WinterTechForum$open_spaces_board$Board$view})();
+var _WinterTechForum$open_spaces_board$Board$main = _elm_lang$html$Html$programWithFlags(
+	{init: _WinterTechForum$open_spaces_board$Board$init, update: _WinterTechForum$open_spaces_board$Board$update, subscriptions: _WinterTechForum$open_spaces_board$Board$subscriptions, view: _WinterTechForum$open_spaces_board$Board$view})(_elm_lang$core$Json_Decode$string);
 
 var Elm = {};
 Elm['Board'] = Elm['Board'] || {};

@@ -9414,12 +9414,21 @@ var _WinterTechForum$open_spaces_board$Admin$DataManipulation = F3(
 	});
 var _WinterTechForum$open_spaces_board$Admin$Model = F6(
 	function (a, b, c, d, e, f) {
-		return {storeWebSocketUrl: a, rooms: b, newRoom: c, timeSlots: d, newTimeSlot: e, newTimeSlotValid: f};
+		return {webSocketUrl: a, rooms: b, newRoom: c, timeSlots: d, newTimeSlot: e, newTimeSlotValid: f};
 	});
-var _WinterTechForum$open_spaces_board$Admin$init = {
-	ctor: '_Tuple2',
-	_0: A6(_WinterTechForum$open_spaces_board$Admin$Model, 'ws://localhost:9000/store', _elm_lang$core$Set$empty, '', _elm_lang$core$Set$empty, '', false),
-	_1: _elm_lang$core$Platform_Cmd$none
+var _WinterTechForum$open_spaces_board$Admin$init = function (webSocketBaseUrl) {
+	return {
+		ctor: '_Tuple2',
+		_0: A6(
+			_WinterTechForum$open_spaces_board$Admin$Model,
+			A2(_elm_lang$core$Basics_ops['++'], webSocketBaseUrl, '/store'),
+			_elm_lang$core$Set$empty,
+			'',
+			_elm_lang$core$Set$empty,
+			'',
+			false),
+		_1: _elm_lang$core$Platform_Cmd$none
+	};
 };
 var _WinterTechForum$open_spaces_board$Admin$Remove = {ctor: 'Remove'};
 var _WinterTechForum$open_spaces_board$Admin$Add = {ctor: 'Add'};
@@ -9515,7 +9524,7 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 						{newRoom: ''}),
 					_1: A2(
 						_elm_lang$websocket$WebSocket$send,
-						model.storeWebSocketUrl,
+						model.webSocketUrl,
 						A2(
 							_elm_lang$core$Basics_ops['++'],
 							'[{\"type\":\"room\",\"op\":\"+\",\"key\":\"',
@@ -9527,7 +9536,7 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 					_0: model,
 					_1: A2(
 						_elm_lang$websocket$WebSocket$send,
-						model.storeWebSocketUrl,
+						model.webSocketUrl,
 						A2(
 							_elm_lang$core$Basics_ops['++'],
 							'[{\"type\":\"room\",\"op\":\"-\",\"key\":\"',
@@ -9563,7 +9572,7 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 						if (_p8.ctor === 'Ok') {
 							return A2(
 								_elm_lang$websocket$WebSocket$send,
-								model.storeWebSocketUrl,
+								model.webSocketUrl,
 								A2(
 									_elm_lang$core$Basics_ops['++'],
 									'[{\"type\":\"timeSlot\",\"op\":\"+\",\"key\":\"',
@@ -9586,7 +9595,7 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 					_0: model,
 					_1: A2(
 						_elm_lang$websocket$WebSocket$send,
-						model.storeWebSocketUrl,
+						model.webSocketUrl,
 						A2(
 							_elm_lang$core$Basics_ops['++'],
 							'[{\"type\":\"timeSlot\",\"op\":\"-\",\"key\":\"',
@@ -9802,10 +9811,10 @@ var _WinterTechForum$open_spaces_board$Admin$WebSocketMessage = function (a) {
 	return {ctor: 'WebSocketMessage', _0: a};
 };
 var _WinterTechForum$open_spaces_board$Admin$subscriptions = function (model) {
-	return A2(_elm_lang$websocket$WebSocket$listen, model.storeWebSocketUrl, _WinterTechForum$open_spaces_board$Admin$WebSocketMessage);
+	return A2(_elm_lang$websocket$WebSocket$listen, model.webSocketUrl, _WinterTechForum$open_spaces_board$Admin$WebSocketMessage);
 };
-var _WinterTechForum$open_spaces_board$Admin$main = _elm_lang$html$Html$program(
-	{init: _WinterTechForum$open_spaces_board$Admin$init, update: _WinterTechForum$open_spaces_board$Admin$update, subscriptions: _WinterTechForum$open_spaces_board$Admin$subscriptions, view: _WinterTechForum$open_spaces_board$Admin$view})();
+var _WinterTechForum$open_spaces_board$Admin$main = _elm_lang$html$Html$programWithFlags(
+	{init: _WinterTechForum$open_spaces_board$Admin$init, update: _WinterTechForum$open_spaces_board$Admin$update, subscriptions: _WinterTechForum$open_spaces_board$Admin$subscriptions, view: _WinterTechForum$open_spaces_board$Admin$view})(_elm_lang$core$Json_Decode$string);
 
 var Elm = {};
 Elm['Admin'] = Elm['Admin'] || {};

@@ -20,7 +20,7 @@ type alias DataManipulation =
 
 
 type alias Model =
-  { storeWebSocketUrl : String
+  { webSocketUrl : String
   , rooms : Set String
   , newRoom : String
   , timeSlots : Set String
@@ -40,9 +40,9 @@ type Msg
 
 
 -- Init
-init : (Model, Cmd Msg)
-init =
-  ( Model "ws://localhost:9000/store" Set.empty "" Set.empty "" False
+init : String -> (Model, Cmd Msg)
+init webSocketBaseUrl =
+  ( Model (webSocketBaseUrl ++ "/store") Set.empty "" Set.empty "" False
   , Cmd.none
   )
 
@@ -114,14 +114,14 @@ update msg model =
 
     AddRoomRequest ->
       ( { model | newRoom = "" }
-      , WebSocket.send model.storeWebSocketUrl
+      , WebSocket.send model.webSocketUrl
         -- TODO use JSON encoder (or at least escape value)
         ( """[{"type":"room","op":"+","key":\"""" ++ model.newRoom ++ """"}]""" )
       )
 
     RemoveRoomRequest room ->
       ( model
-      , WebSocket.send model.storeWebSocketUrl
+      , WebSocket.send model.webSocketUrl
         -- TODO use JSON encoder (or at least escape value)
         ( """[{"type":"room","op":"-","key":\"""" ++ room ++ """"}]""" )
       )
@@ -141,7 +141,7 @@ update msg model =
       ( { model | newTimeSlot = "" }
       , case Date.fromString model.newTimeSlot of
           Ok date ->
-            WebSocket.send model.storeWebSocketUrl
+            WebSocket.send model.webSocketUrl
               -- TODO use JSON encoder (or at least escape value)
               ( """[{"type":"timeSlot","op":"+","key":\""""
               ++( String.slice 1 22 (toString date) )
@@ -153,7 +153,7 @@ update msg model =
 
     RemoveTimeSlotRequest timeSlot ->
       ( model
-      , WebSocket.send model.storeWebSocketUrl
+      , WebSocket.send model.webSocketUrl
         -- TODO use JSON encoder (or at least escape value)
         ( """[{"type":"timeSlot","op":"-","key":\"""" ++ timeSlot ++ """"}]""" )
       )
@@ -162,7 +162,7 @@ update msg model =
 -- Subscription
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  WebSocket.listen model.storeWebSocketUrl WebSocketMessage
+  WebSocket.listen model.webSocketUrl WebSocketMessage
 
 
 -- View
@@ -208,9 +208,9 @@ view model =
   ]
 
 
-main : Program Never Model Msg
+main : Program String Model Msg
 main =
-  Html.program
+  Html.programWithFlags
     { init = init
     , update = update
     , subscriptions = subscriptions
