@@ -9915,7 +9915,16 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 																	ctor: '::',
 																	_0: A2(
 																		_elm_lang$html$Html$div,
-																		{ctor: '[]'},
+																		{
+																			ctor: '::',
+																			_0: _elm_lang$html$Html_Attributes$style(
+																				{
+																					ctor: '::',
+																					_0: {ctor: '_Tuple2', _0: 'font-size', _1: '0.8em'},
+																					_1: {ctor: '[]'}
+																				}),
+																			_1: {ctor: '[]'}
+																		},
 																		{
 																			ctor: '::',
 																			_0: _elm_lang$html$Html$text(

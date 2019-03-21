@@ -283,7 +283,7 @@ view model =
                     ( case Dict.get (timeSlot, room) model.topics of
                         Just topic ->
                           [ div [] [ text topic.text ]
-                          , div [] [ text ("Convener: " ++ topic.convener) ]
+                          , div [ style [ ("font-size", "0.8em") ] ] [ text ("Convener: " ++ topic.convener) ]
                           ]
                         Nothing -> [ button [ onClick (ShowAddTopicViewRequest timeSlot room) ] [ text "Add" ] ]
                     )
