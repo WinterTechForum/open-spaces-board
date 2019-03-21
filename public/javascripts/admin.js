@@ -9526,9 +9526,39 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 						_elm_lang$websocket$WebSocket$send,
 						model.webSocketUrl,
 						A2(
-							_elm_lang$core$Basics_ops['++'],
-							'[{\"type\":\"room\",\"op\":\"+\",\"key\":\"',
-							A2(_elm_lang$core$Basics_ops['++'], model.newRoom, '\"}]')))
+							_elm_lang$core$Json_Encode$encode,
+							0,
+							_elm_lang$core$Json_Encode$list(
+								{
+									ctor: '::',
+									_0: _elm_lang$core$Json_Encode$object(
+										{
+											ctor: '::',
+											_0: {
+												ctor: '_Tuple2',
+												_0: 'type',
+												_1: _elm_lang$core$Json_Encode$string('room')
+											},
+											_1: {
+												ctor: '::',
+												_0: {
+													ctor: '_Tuple2',
+													_0: 'op',
+													_1: _elm_lang$core$Json_Encode$string('+')
+												},
+												_1: {
+													ctor: '::',
+													_0: {
+														ctor: '_Tuple2',
+														_0: 'key',
+														_1: _elm_lang$core$Json_Encode$string(model.newRoom)
+													},
+													_1: {ctor: '[]'}
+												}
+											}
+										}),
+									_1: {ctor: '[]'}
+								})))
 				};
 			case 'RemoveRoomRequest':
 				return {
@@ -9538,9 +9568,39 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 						_elm_lang$websocket$WebSocket$send,
 						model.webSocketUrl,
 						A2(
-							_elm_lang$core$Basics_ops['++'],
-							'[{\"type\":\"room\",\"op\":\"-\",\"key\":\"',
-							A2(_elm_lang$core$Basics_ops['++'], _p1._0, '\"}]')))
+							_elm_lang$core$Json_Encode$encode,
+							0,
+							_elm_lang$core$Json_Encode$list(
+								{
+									ctor: '::',
+									_0: _elm_lang$core$Json_Encode$object(
+										{
+											ctor: '::',
+											_0: {
+												ctor: '_Tuple2',
+												_0: 'type',
+												_1: _elm_lang$core$Json_Encode$string('room')
+											},
+											_1: {
+												ctor: '::',
+												_0: {
+													ctor: '_Tuple2',
+													_0: 'op',
+													_1: _elm_lang$core$Json_Encode$string('-')
+												},
+												_1: {
+													ctor: '::',
+													_0: {
+														ctor: '_Tuple2',
+														_0: 'key',
+														_1: _elm_lang$core$Json_Encode$string(_p1._0)
+													},
+													_1: {ctor: '[]'}
+												}
+											}
+										}),
+									_1: {ctor: '[]'}
+								})))
 				};
 			case 'UpdatedNewTimeSlot':
 				var _p7 = _p1._0;
@@ -9574,16 +9634,39 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 								_elm_lang$websocket$WebSocket$send,
 								model.webSocketUrl,
 								A2(
-									_elm_lang$core$Basics_ops['++'],
-									'[{\"type\":\"timeSlot\",\"op\":\"+\",\"key\":\"',
-									A2(
-										_elm_lang$core$Basics_ops['++'],
-										A3(
-											_elm_lang$core$String$slice,
-											1,
-											22,
-											_elm_lang$core$Basics$toString(_p8._0)),
-										'\"}]')));
+									_elm_lang$core$Json_Encode$encode,
+									0,
+									_elm_lang$core$Json_Encode$list(
+										{
+											ctor: '::',
+											_0: _elm_lang$core$Json_Encode$object(
+												{
+													ctor: '::',
+													_0: {
+														ctor: '_Tuple2',
+														_0: 'type',
+														_1: _elm_lang$core$Json_Encode$string('timeSlot')
+													},
+													_1: {
+														ctor: '::',
+														_0: {
+															ctor: '_Tuple2',
+															_0: 'op',
+															_1: _elm_lang$core$Json_Encode$string('+')
+														},
+														_1: {
+															ctor: '::',
+															_0: {
+																ctor: '_Tuple2',
+																_0: 'key',
+																_1: _elm_lang$core$Json_Encode$string(model.newTimeSlot)
+															},
+															_1: {ctor: '[]'}
+														}
+													}
+												}),
+											_1: {ctor: '[]'}
+										})));
 						} else {
 							return _elm_lang$core$Platform_Cmd$none;
 						}
@@ -9597,9 +9680,39 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 						_elm_lang$websocket$WebSocket$send,
 						model.webSocketUrl,
 						A2(
-							_elm_lang$core$Basics_ops['++'],
-							'[{\"type\":\"timeSlot\",\"op\":\"-\",\"key\":\"',
-							A2(_elm_lang$core$Basics_ops['++'], _p1._0, '\"}]')))
+							_elm_lang$core$Json_Encode$encode,
+							0,
+							_elm_lang$core$Json_Encode$list(
+								{
+									ctor: '::',
+									_0: _elm_lang$core$Json_Encode$object(
+										{
+											ctor: '::',
+											_0: {
+												ctor: '_Tuple2',
+												_0: 'type',
+												_1: _elm_lang$core$Json_Encode$string('timeSlot')
+											},
+											_1: {
+												ctor: '::',
+												_0: {
+													ctor: '_Tuple2',
+													_0: 'op',
+													_1: _elm_lang$core$Json_Encode$string('-')
+												},
+												_1: {
+													ctor: '::',
+													_0: {
+														ctor: '_Tuple2',
+														_0: 'key',
+														_1: _elm_lang$core$Json_Encode$string(_p1._0)
+													},
+													_1: {ctor: '[]'}
+												}
+											}
+										}),
+									_1: {ctor: '[]'}
+								})))
 				};
 		}
 	});

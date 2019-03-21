@@ -5,6 +5,7 @@ import Html exposing (..)
 import Html.Attributes exposing (disabled, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode
 import Set exposing (Set)
 import WebSocket
 
@@ -115,15 +116,31 @@ update msg model =
     AddRoomRequest ->
       ( { model | newRoom = "" }
       , WebSocket.send model.webSocketUrl
-        -- TODO use JSON encoder (or at least escape value)
-        ( """[{"type":"room","op":"+","key":\"""" ++ model.newRoom ++ """"}]""" )
+        ( Encode.encode 0
+          ( Encode.list
+            [ Encode.object
+              [ ("type", Encode.string "room")
+              , ("op", Encode.string "+")
+              , ("key", Encode.string model.newRoom)
+              ]
+            ]
+          )
+        )
       )
 
     RemoveRoomRequest room ->
       ( model
       , WebSocket.send model.webSocketUrl
-        -- TODO use JSON encoder (or at least escape value)
-        ( """[{"type":"room","op":"-","key":\"""" ++ room ++ """"}]""" )
+        ( Encode.encode 0
+          ( Encode.list
+            [ Encode.object
+              [ ("type", Encode.string "room")
+              , ("op", Encode.string "-")
+              , ("key", Encode.string room)
+              ]
+            ]
+          )
+        )
       )
 
     UpdatedNewTimeSlot newTimeSlot ->
@@ -142,11 +159,16 @@ update msg model =
       , case Date.fromString model.newTimeSlot of
           Ok date ->
             WebSocket.send model.webSocketUrl
-              -- TODO use JSON encoder (or at least escape value)
-              ( """[{"type":"timeSlot","op":"+","key":\""""
-              ++( String.slice 1 22 (toString date) )
-              ++ """"}]"""
+            ( Encode.encode 0
+              ( Encode.list
+                [ Encode.object
+                  [ ("type", Encode.string "timeSlot")
+                  , ("op", Encode.string "+")
+                  , ("key", Encode.string model.newTimeSlot)
+                  ]
+                ]
               )
+            )
           Err _ ->
             Cmd.none
       )
@@ -154,8 +176,16 @@ update msg model =
     RemoveTimeSlotRequest timeSlot ->
       ( model
       , WebSocket.send model.webSocketUrl
-        -- TODO use JSON encoder (or at least escape value)
-        ( """[{"type":"timeSlot","op":"-","key":\"""" ++ timeSlot ++ """"}]""" )
+        ( Encode.encode 0
+          ( Encode.list
+            [ Encode.object
+              [ ("type", Encode.string "timeSlot")
+              , ("op", Encode.string "-")
+              , ("key", Encode.string timeSlot)
+              ]
+            ]
+          )
+        )
       )
 
 

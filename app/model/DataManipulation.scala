@@ -15,11 +15,34 @@ object DataManipulation {
   case object Add extends Operation("+")
   case object Remove extends Operation("-")
 
-  implicit val reads: Reads[DataManipulation] = (
-    (JsPath \ "type").read[String] and
-    (JsPath \ "op").read[Operation] and
-    (JsPath \ "key").read[String]
-  )(KeyOnlyDataManipulation.apply _)
+  // TODO this whole JSON reads/writes thing can probably be better
+  private val topicKeyValueDataManipulationReads: Reads[DataManipulation] =
+    (
+      (JsPath \ "type").read[String] and
+      (JsPath \ "op").read[Operation] and
+      (JsPath \ "key").read[String] and
+      (JsPath \ "value").read[Topic]
+    )(KeyValueDataManipulation.apply[Topic] _)
+
+  private val stringKeyValueDataManipulationReads: Reads[DataManipulation] =
+    (
+      (JsPath \ "type").read[String] and
+      (JsPath \ "op").read[Operation] and
+      (JsPath \ "key").read[String] and
+      (JsPath \ "value").read[String]
+    )(KeyValueDataManipulation.apply[String] _)
+
+  private val keyOnlyDataManipulationReads: Reads[DataManipulation] =
+    (
+      (JsPath \ "type").read[String] and
+      (JsPath \ "op").read[Operation] and
+      (JsPath \ "key").read[String]
+    )(KeyOnlyDataManipulation.apply _)
+
+  implicit val reads: Reads[DataManipulation] =
+    topicKeyValueDataManipulationReads orElse
+    stringKeyValueDataManipulationReads orElse
+    keyOnlyDataManipulationReads
 
   implicit val writes: Writes[DataManipulation] = Writes {
     case KeyOnlyDataManipulation(typ: String, operation: Operation, key: String) =>
@@ -32,6 +55,32 @@ object DataManipulation {
           }
         ),
         "key" -> key
+      )
+
+    case KeyValueDataManipulation(typ: String, operation: Operation, key: String, value: String) =>
+      Json.obj(
+        "type" -> typ,
+        "op" -> (
+          operation match {
+            case Add => "+"
+            case Remove => "-"
+          }
+        ),
+        "key" -> key,
+        "value" -> value
+      )
+
+    case KeyValueDataManipulation(typ: String, operation: Operation, key: String, value: Topic) =>
+      Json.obj(
+        "type" -> typ,
+        "op" -> (
+          operation match {
+            case Add => "+"
+            case Remove => "-"
+          }
+        ),
+        "key" -> key,
+        "value" -> Json.toJson(value)
       )
   }
 }
