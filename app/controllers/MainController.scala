@@ -21,11 +21,11 @@ class MainController @Inject()
     extends AbstractController(cc) {
   private val repositoryActor: ActorRef = system.actorOf(RepositoryActor.props(ws, cfg))
 
-  def index() = Action { implicit request: Request[AnyContent] =>
+  def index(): Action[AnyContent] = Action { implicit request: Request[AnyContent] =>
     Ok(views.html.index())
   }
 
-  def admin() = Action { implicit request: Request[AnyContent] =>
+  def admin(): Action[AnyContent] = Action { implicit request: Request[AnyContent] =>
     Ok(views.html.admin())
   }
 
