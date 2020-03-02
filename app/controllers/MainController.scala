@@ -19,7 +19,8 @@ class MainController @Inject()
     (ws: WSClient, cc: ControllerComponents, cfg: Configuration)
     (implicit system: ActorSystem, mat: Materializer)
     extends AbstractController(cc) {
-  private val repositoryActor: ActorRef = system.actorOf(RepositoryActor.props(ws, cfg))
+  private val repositoryActor: ActorRef =
+    system.actorOf(RepositoryActor.props(ws, cfg), "repository")
 
   def index(): Action[AnyContent] = Action { implicit request: Request[AnyContent] =>
     Ok(views.html.index())

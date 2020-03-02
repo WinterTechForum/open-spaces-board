@@ -14,6 +14,7 @@ object DataManipulation {
   sealed abstract class Operation(val code: String)
   case object Add extends Operation("+")
   case object Remove extends Operation("-")
+  case object Reset extends Operation("reset")
 
   // TODO this whole JSON reads/writes thing can probably be better
   private val topicKeyValueDataManipulationReads: Reads[DataManipulation] =
@@ -38,34 +39,27 @@ object DataManipulation {
       (JsPath \ "op").read[Operation] and
       (JsPath \ "key").read[String]
     )(KeyOnlyDataManipulation.apply _)
+  private val dataManipulationMetadataReads: Reads[DataManipulation] =
+    (__ \ "op").read[Operation].map(DataManipulationMetadata.apply)
 
   implicit val reads: Reads[DataManipulation] =
     topicKeyValueDataManipulationReads orElse
     stringKeyValueDataManipulationReads orElse
     keyOnlyDataManipulationReads
+  implicit val seqReads: Reads[Seq[DataManipulation]] = Reads.seq(DataManipulation.reads)
 
   implicit val writes: Writes[DataManipulation] = Writes {
     case KeyOnlyDataManipulation(typ: String, operation: Operation, key: String) =>
       Json.obj(
         "type" -> typ,
-        "op" -> (
-          operation match {
-            case Add => "+"
-            case Remove => "-"
-          }
-        ),
+        "op" -> operation.code,
         "key" -> key
       )
 
     case KeyValueDataManipulation(typ: String, operation: Operation, key: String, value: String) =>
       Json.obj(
         "type" -> typ,
-        "op" -> (
-          operation match {
-            case Add => "+"
-            case Remove => "-"
-          }
-        ),
+        "op" -> operation.code,
         "key" -> key,
         "value" -> value
       )
@@ -73,14 +67,14 @@ object DataManipulation {
     case KeyValueDataManipulation(typ: String, operation: Operation, key: String, value: Topic) =>
       Json.obj(
         "type" -> typ,
-        "op" -> (
-          operation match {
-            case Add => "+"
-            case Remove => "-"
-          }
-        ),
+        "op" -> operation.code,
         "key" -> key,
         "value" -> Json.toJson(value)
+      )
+
+    case DataManipulationMetadata(operation: Operation) =>
+      Json.obj(
+        "op" -> operation.code
       )
   }
 }
@@ -95,4 +89,7 @@ case class KeyValueDataManipulation[T] (
   operation: DataManipulation.Operation,
   key: String,
   value: T
+) extends DataManipulation
+case class DataManipulationMetadata(
+  operation: DataManipulation.Operation
 ) extends DataManipulation

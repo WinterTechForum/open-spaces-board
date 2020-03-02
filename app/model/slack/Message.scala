@@ -11,6 +11,7 @@ object Message {
     (JsPath \ "text").read[String] and
     (JsPath \ "ts").read[String]
   )(Message.apply _)
+  implicit val seqReads: Reads[Seq[Message]] = Reads.seq(Message.reads)
 }
 case class Message(
   `type`: String,
