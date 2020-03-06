@@ -34,7 +34,7 @@ type alias Model =
   , topicIdsByTimeSlotRoom : Dict (String, String) String
   , topicsById : Dict String Topic
   , timeSlotRoomsByTopicId : Dict String (String, String)
-  , workingTopic : Maybe (String, String, Topic)
+  , workingTopic : Maybe (String, String, String, Topic)
   , movingTopicId : Maybe String
   }
 
@@ -42,8 +42,10 @@ type alias Model =
 type Msg
   = WebSocketMessage String
   | ShowAddTopicViewRequest String String
+  | ShowEditTopicViewRequest String String String Topic
   | UpdateWorkingTopicText String
   | UpdateWorkingTopicConvener String
+  | DeleteWorkingTopic
   | SelectTopicToMove String
   | DraggingOverRoomTimeSlot String String
   | MoveTopicToRoomTimeSlot String String
@@ -140,12 +142,28 @@ update msg model =
                             case String.split "|" dataManipulation.key of
                               [ timeSlot, room ] ->
                                 let
-                                  unpinnedTopicIdsByTimeSlotRoom : Dict (String,String) String
-                                  unpinnedTopicIdsByTimeSlotRoom =
+                                  (unpinnedTopicIdsByTimeSlotRoom, displacedTimeSlotRoomsByTopicId) =
                                     case Dict.get topicId model.timeSlotRoomsByTopicId of
-                                      Just timeSlotRoom ->
-                                        Dict.remove timeSlotRoom model.topicIdsByTimeSlotRoom
-                                      Nothing -> model.topicIdsByTimeSlotRoom
+                                      Just oldTimeSlotRoom ->
+                                        case Dict.get (timeSlot, room) model.topicIdsByTimeSlotRoom of
+                                          Just displacedTopicId ->
+                                            ( Dict.insert oldTimeSlotRoom displacedTopicId model.topicIdsByTimeSlotRoom
+                                            , Dict.remove displacedTopicId model.timeSlotRoomsByTopicId
+                                            )
+                                          Nothing ->
+                                            ( Dict.remove oldTimeSlotRoom model.topicIdsByTimeSlotRoom
+                                            , model.timeSlotRoomsByTopicId
+                                            )
+                                      Nothing ->
+                                        case Dict.get (timeSlot, room) model.topicIdsByTimeSlotRoom of
+                                          Just displacedTopicId ->
+                                            ( model.topicIdsByTimeSlotRoom
+                                            , Dict.remove displacedTopicId model.timeSlotRoomsByTopicId
+                                            )
+                                          Nothing ->
+                                            ( model.topicIdsByTimeSlotRoom
+                                            , model.timeSlotRoomsByTopicId
+                                            )
                                 in
                                   { model
                                   | topicIdsByTimeSlotRoom =
@@ -173,16 +191,21 @@ update msg model =
         )
 
     ShowAddTopicViewRequest timeSlot room ->
-      ( { model | workingTopic = Just (timeSlot, room, Topic "" "") }
+      ( { model | workingTopic = Just (timeSlot, room, "new", Topic "" "") }
+      , Cmd.none
+      )
+
+    ShowEditTopicViewRequest timeSlot room topicId topic ->
+      ( { model | workingTopic = Just (timeSlot, room, topicId, topic) }
       , Cmd.none
       )
 
     UpdateWorkingTopicText text ->
       let
-        workingTopic : Maybe (String, String, Topic)
+        workingTopic : Maybe (String, String, String, Topic)
         workingTopic =
           Maybe.map
-          ( \(timeSlot, room, topic) -> (timeSlot, room, { topic | text = text }) )
+          ( \(timeSlot, room, topicId, topic) -> (timeSlot, room, topicId, { topic | text = text }) )
           model.workingTopic
       in
         ( { model | workingTopic = workingTopic }
@@ -191,22 +214,27 @@ update msg model =
 
     UpdateWorkingTopicConvener convener ->
       let
-        workingTopic : Maybe (String, String, Topic)
+        workingTopic : Maybe (String, String, String, Topic)
         workingTopic =
           Maybe.map
-          ( \(timeSlot, room, topic) -> (timeSlot, room, { topic | convener = convener }) )
+          ( \(timeSlot, room, topicId, topic) -> (timeSlot, room, topicId, { topic | convener = convener }) )
           model.workingTopic
       in
         ( { model | workingTopic = workingTopic }
         , Cmd.none
         )
 
+    DeleteWorkingTopic ->
+      ( { model | workingTopic = Nothing }
+      , Cmd.none
+      )
+
     SelectTopicToMove topicId ->
       ( { model | movingTopicId = Just topicId }
       , Cmd.none
       )
 
-    DraggingOverRoomTimeSlot timeSlot room ->
+    DraggingOverRoomTimeSlot _ _ ->
       ( model, Cmd.none )
 
     MoveTopicToRoomTimeSlot timeSlot room ->
@@ -232,7 +260,7 @@ update msg model =
     CreateTopicRequest ->
       ( { model | workingTopic = Nothing }
       , case model.workingTopic of
-          Just (timeSlot, room, topic) ->
+          Just (timeSlot, room, topicId, topic) ->
             WebSocket.send model.webSocketUrl
             ( Encode.encode 0
               ( Encode.list
@@ -240,12 +268,12 @@ update msg model =
                   [ ( "type", Encode.string "pin" )
                   , ( "op",  Encode.string "+" )
                   , ( "key", Encode.string (timeSlot ++ "|" ++ room) )
-                  , ( "value", Encode.string "new" )
+                  , ( "value", Encode.string topicId )
                   ]
                 , Encode.object
                   [ ( "type", Encode.string "topic" )
                   , ( "op", Encode.string "+" )
-                  , ( "key", Encode.string "new" )
+                  , ( "key", Encode.string topicId )
                   , ( "value"
                     , Encode.object
                       [ ( "text", Encode.string topic.text )
@@ -291,7 +319,7 @@ tableCellStyle =
 view : Model -> Html Msg
 view model =
   case model.workingTopic of
-    Just (timeSlot, room, topic) ->
+    Just (_, _, _, topic) ->
       div []
       [ div []
         [ textarea [ onInput UpdateWorkingTopicText, cols 80, rows 10 ]
@@ -301,7 +329,10 @@ view model =
         [ text "Convener:"
         , input [ type_ "text", value topic.convener, onInput UpdateWorkingTopicConvener ] []
         ]
-      , div [] [ button [ onClick CreateTopicRequest ] [ text "Save" ] ]
+      , div []
+        [ button [ onClick CreateTopicRequest ] [ text "Save" ]
+        , button [ onClick DeleteWorkingTopic ] [ text "Cancel" ]
+        ]
       ]
     Nothing ->
       div []
@@ -340,6 +371,9 @@ view model =
                               [ div [] [ text topic.text ]
                               , div [ style [ ("font-size", "0.8em") ] ] [ text ("Convener: " ++ topic.convener) ]
                               ]
+                            , button
+                              [ onClick (ShowEditTopicViewRequest timeSlot room topicId topic) ]
+                              [ text "Edit" ]
                             ]
                           Nothing ->
                             [ button
