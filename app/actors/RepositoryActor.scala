@@ -44,12 +44,81 @@ object RepositoryActor {
       )
     )
 
+  private object Board {
+    def fromDataManipulations(dataManipulations: Seq[DataManipulation]): Board =
+      // Data manipulations are most recent first, hence folding right instead of left
+      dataManipulations.foldRight(Board()) {
+        case (
+            dataManipulation: DataManipulation,
+            board @ Board(rooms: Set[String], timeSlots: Set[String], topicsById: Map[String, Topic], topicIdsByTimeSlotRoom: Map[(String, String), String])
+            ) =>
+          dataManipulation match {
+            case AllRecordDataManipulation(DataManipulation.Remove) => Board()
+
+            case KeyOnlyDataManipulation("room", DataManipulation.Add, room: String) =>
+              board.copy(rooms = rooms + room)
+
+            case KeyOnlyDataManipulation("room", DataManipulation.Remove, room: String) =>
+              board.copy(rooms = rooms - room)
+
+            case KeyOnlyDataManipulation("timeSlot", DataManipulation.Add, timeSlot: String) =>
+              board.copy(timeSlots = timeSlots + timeSlot)
+
+            case KeyOnlyDataManipulation("timeSlot", DataManipulation.Remove, timeSlot: String) =>
+              board.copy(timeSlots = timeSlots - timeSlot)
+
+            case KeyValueDataManipulation("topic", DataManipulation.Add, id: String, topic: Topic) =>
+              board.copy(topicsById = topicsById + (id -> topic))
+
+            case KeyValueDataManipulation("topic", DataManipulation.Remove, id: String, _) =>
+              board.copy(topicsById = topicsById - id)
+
+            case KeyValueDataManipulation("pin", DataManipulation.Add, timeSlotRoom: String, topicId: String) =>
+              val Array(timeSlot: String, room: String) = timeSlotRoom.split("\\|", 2)
+              val oldTimeSlotRoomOpt: Option[(String,String)] =
+                topicIdsByTimeSlotRoom.collectFirst {
+                  case (timeSlotRoom, `topicId`) => timeSlotRoom
+                }
+              val displacedTopicIdOpt: Option[String] = topicIdsByTimeSlotRoom.get((timeSlot, room))
+              val adjustedTopicIdsByTimeSlotRoom: Map[(String,String),String] =
+                (oldTimeSlotRoomOpt, displacedTopicIdOpt) match {
+                  case (Some(oldTimeSlotRoom), Some(displacedTopicId)) =>
+                    topicIdsByTimeSlotRoom + (oldTimeSlotRoom -> displacedTopicId)
+                  case (Some(oldTimeSlotRoom), None) =>
+                    topicIdsByTimeSlotRoom - oldTimeSlotRoom
+                  case (None, _) =>
+                    topicIdsByTimeSlotRoom
+                }
+
+              board.copy(topicIdsByTimeSlotRoom = adjustedTopicIdsByTimeSlotRoom + ((timeSlot, room) -> topicId))
+
+            case _ => board
+          }
+      }
+  }
   private case class Board(
     rooms: Set[String] = Set(),
     timeSlots: Set[String] = Set(),
-    topics: Map[(String,String),Topic] = Map(),
-    unpinnedTopics: Set[Topic] = Set()
-  )
+    topicsById: Map[String,Topic] = Map(),
+    topicIdsByTimeSlotRoom: Map[(String,String),String] = Map()
+  ) {
+    val compactedDataManipulations: Seq[DataManipulation] =
+      topicIdsByTimeSlotRoom.toSeq.map {
+        case ((timeSlot: String, room: String), topicId: String) =>
+          KeyValueDataManipulation("pin", DataManipulation.Add, s"${timeSlot}|${room}", topicId)
+      } ++
+      topicsById.toSeq.map {
+        case (topicId: String, topic: Topic) =>
+          KeyValueDataManipulation("topic", DataManipulation.Add, topicId, topic)
+      } ++
+      rooms.toSeq.map { room: String =>
+        KeyOnlyDataManipulation("room", DataManipulation.Add, room)
+      } ++
+        timeSlots.toSeq.map { timeSlot: String =>
+          KeyOnlyDataManipulation("timeSlot", DataManipulation.Add, timeSlot)
+      } :+
+      AllRecordDataManipulation(DataManipulation.Remove)
+  }
 
   private case class ChannelNotFoundException(name: String) extends IllegalArgumentException
 }
@@ -80,86 +149,9 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration)(implicit mat: Ma
         )
     }
 
-    private def subscribeToSlackMessages(botId: String, channelId: String): Unit =
-      for {
-        joinResp: WSResponse <-
-          slackApiGet(
-            s"${slackBaseUrl}/conversations.history?token=${slackWebSocketToken}&channel=${channelId}&limit=1000"
-          ).
-          recover {
-            case t: Throwable =>
-              t.printStackTrace()
-              throw t
-          }
-        resp: WSResponse <- slackApiGet(s"${slackBaseUrl}/rtm.connect?token=${slackWebSocketToken}")
-      } {
-        log.info("!!!")
-        // Play's WSClient unfortunately does not handle websocket connections
-        // Consider rewriting other HTTP client calls to just use Akka HTTP as well?
-        val http: HttpExt = Http()(context.system)
+  private def urlEncodedJson(group: Seq[DataManipulation]): String =
+    URLEncoder.encode(Json.stringify(Json.toJson(group)),"UTF-8")
 
-        val incoming: Sink[WebSocketMessage, Future[Done]] =
-          Sink.foreach[WebSocketMessage] {
-            case message: TextMessage.Strict =>
-              println(message.text)
-          }
-        val outgoing: Source[WebSocketMessage, _] =
-          Source.tick(0.second, 5.minutes, TextMessage("""{"id": 1,"type": "ping"}"""))
-        val webSocketFlow: Flow[WebSocketMessage, WebSocketMessage, Future[WebSocketUpgradeResponse]] =
-          http.webSocketClientFlow((resp.json \ "url").as[String])
-
-        log.info("Establishing WebSocket connection to listen for data manipulation updates...")
-        val (_, done: Future[Done]) = webSocketFlow.runWith(outgoing, incoming)
-        done.foreach(_ => subscribeToSlackMessages(botId, channelId))
-      }
-
-
-  //  private def applyDataManipulations(
-//      dataManipulations: Seq[DataManipulation], board: Board): Board = {
-//    val (enrichedBoard: Board, topicsById: Map[String,Topic], topicIdsByTimeSlotRoom: Map[(String,String),String]) =
-//      // Data manipulations are most recent first, hence folding right instead of left
-//      dataManipulations.foldRight((board, Map[String,Topic](), Map[(String,String),String]())) {
-//        case (
-//              dataManipulation: DataManipulation,
-//              (
-//                board @ Board(rooms: Set[String], timeSlots: Set[String], _, _),
-//                topicsById: Map[String,Topic],
-//                topicIdsByRoomTimeSlot: Map[(String,String),String]
-//              )
-//            ) =>
-//          dataManipulation match {
-//            case KeyOnlyDataManipulation("room", DataManipulation.Add, room: String) =>
-//              (board.copy(rooms = rooms + room), topicsById, topicIdsByRoomTimeSlot)
-//
-//            case KeyOnlyDataManipulation("room", DataManipulation.Remove, room: String) =>
-//              (board.copy(rooms = rooms - room), topicsById, topicIdsByRoomTimeSlot)
-//
-//            case KeyOnlyDataManipulation("timeSlot", DataManipulation.Add, timeSlot: String) =>
-//              (board.copy(timeSlots = timeSlots + timeSlot), topicsById, topicIdsByRoomTimeSlot)
-//
-//            case KeyOnlyDataManipulation("timeSlot", DataManipulation.Remove, timeSlot: String) =>
-//              (board.copy(timeSlots = timeSlots - timeSlot), topicsById, topicIdsByRoomTimeSlot)
-//
-//            case KeyValueDataManipulation("topic", DataManipulation.Add, id: String, topic: Topic) =>
-//              (board, topicsById + (id -> topic), topicIdsByRoomTimeSlot)
-//
-//            case KeyValueDataManipulation("topic", DataManipulation.Remove, id: String, _) =>
-//              (board, topicsById - id, topicIdsByRoomTimeSlot)
-//
-//            case KeyValueDataManipulation("pin", DataManipulation.Add, timeSlotRoom: String, topicId: String) =>
-//              val Array(timeSlot: String, room: String) = timeSlotRoom.split("\\|", 2)
-//              (board, topicsById, topicIdsByRoomTimeSlot + ((timeSlot, room) -> topicId))
-//
-//            case _ => (board, topicsById, topicIdsByRoomTimeSlot)
-//          }
-//      }
-//
-//    enrichedBoard.copy(
-//      topics = enrichedBoard.topics ++ topicIdsByTimeSlotRoom.view.mapValues(topicsById),
-//      unpinnedTopics = enrichedBoard.unpinnedTopics
-//    )
-//  }
-//
   (
     for {
       channelsResponse: WSResponse <-
@@ -198,6 +190,10 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration)(implicit mat: Ma
             flatMap {
               case Success(dataManipulations: Seq[DataManipulation]) => dataManipulations
               case Failure(_) => Seq()
+            }.
+            takeWhile {
+              case AllRecordDataManipulation(DataManipulation.Remove) => false
+              case _ => true
             }
         }
     } yield Initialized(channelId, dataManipulations)
@@ -208,7 +204,7 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration)(implicit mat: Ma
       log.info(s"RepositoryActor initialized with channelId ${channelId}...")
 //      val board: Board = applyDataManipulations(dataManipulations, Board())
       context.become(
-        running(dataManipulations, Set(), channelId)
+        running(compactedDataManipulations, Set(), channelId)
       )
 
     case Status.Failure(ChannelNotFoundException(name: String)) =>
@@ -224,7 +220,7 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration)(implicit mat: Ma
   private def running(dataManipulations: Seq[DataManipulation], listeners: Set[ActorRef], channelId: String): Receive = {
     case UserUpdateRequest(dataManipulations: Seq[DataManipulation]) =>
       val newKey: Long = System.currentTimeMillis()
-      val idEnrichedDataManipulation: Seq[DataManipulation] = dataManipulations.
+      val idEnrichedDataManipulations: Seq[DataManipulation] = dataManipulations.
         map {
           case dataMan @ KeyValueDataManipulation("topic", DataManipulation.Add, "new", _) =>
             dataMan.copy(key = newKey.toString)
@@ -233,13 +229,9 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration)(implicit mat: Ma
           case dataMan: DataManipulation =>
             dataMan
         }
-      val urlEncDataManJson: String = URLEncoder.encode(
-        Json.stringify(Json.toJson(idEnrichedDataManipulation)),
-        "UTF-8"
-      )
-      slackApiGet(s"${slackBaseUrl}/chat.postMessage?token=${slackToken}&channel=${channelId}&text=${urlEncDataManJson}").
+      slackApiGet(s"${slackBaseUrl}/chat.postMessage?token=${slackToken}&channel=${channelId}&text=${urlEncodedJson(idEnrichedDataManipulations)}").
         map { _: WSResponse =>
-          StorageUpdateEvent(idEnrichedDataManipulation)
+          StorageUpdateEvent(idEnrichedDataManipulations)
         }.
         pipeTo(self)
         // TODO instead of piping this to self, consider using the RTM API to support multi-node synchronizing
@@ -259,26 +251,6 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration)(implicit mat: Ma
     case ListenerRegistration(listener: ActorRef) =>
       listener ! StorageUpdateEvent(
         dataManipulations :+ AllRecordDataManipulation(DataManipulation.Remove)
-        // TODO move this to Board#minimalDataManipulations
-//        board.rooms.toSeq.map { room =>
-//          KeyOnlyDataManipulation("room", DataManipulation.Add, room)
-//        }
-//        ++
-//        board.timeSlots.toSeq.map { timeSlot =>
-//          KeyOnlyDataManipulation("timeSlot", DataManipulation.Add, timeSlot)
-//        }
-//        ++
-//        board.timeSlots.toSeq.map { timeSlot =>
-//          KeyOnlyDataManipulation("timeSlot", DataManipulation.Add, timeSlot)
-//        }
-//        ++
-//        board.topics.toSeq.zipWithIndex.flatMap {
-//          case (((timeSlot: String, room: String), topic: Topic), topicId: Int) =>
-//            Seq(
-//              KeyValueDataManipulation("topic", DataManipulation.Add, topicId.toString, topic),
-//              KeyValueDataManipulation("pin", DataManipulation.Add, s"${timeSlot}|${room}", topicId.toString)
-//            )
-//        }
       )
       context.watch(listener)
       context.become(

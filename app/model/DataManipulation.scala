@@ -71,7 +71,7 @@ object DataManipulation {
         "value" -> Json.toJson(value)
       )
 
-    case KeyValueDataManipulation(typ: String, operation: Operation, key: String, badValue: Any) =>
+    case KeyValueDataManipulation(typ: String, operation: Operation, key: String, _: Any) =>
       Json.obj(
         "type" -> typ,
         "op" -> operation.code,
