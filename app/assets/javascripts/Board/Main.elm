@@ -31,8 +31,11 @@ type alias Model =
   { webSocketUrl : String
   , rooms : Set String
   , timeSlots : Set String
-  , topics : Dict (String, String) Topic
+  , topicIdsByTimeSlotRoom : Dict (String, String) String
+  , topicsById : Dict String Topic
+  , timeSlotRoomsByTopicId : Dict String (String, String)
   , workingTopic : Maybe (String, String, Topic)
+  , movingTopicId : Maybe String
   }
 
 
@@ -41,13 +44,16 @@ type Msg
   | ShowAddTopicViewRequest String String
   | UpdateWorkingTopicText String
   | UpdateWorkingTopicConvener String
+  | SelectTopicToMove String
+  | DraggingOverRoomTimeSlot String String
+  | MoveTopicToRoomTimeSlot String String
   | CreateTopicRequest
 
 
 -- Init
 init : String -> (Model, Cmd Msg)
 init webSocketBaseUrl =
-  ( Model (webSocketBaseUrl ++ "/store") Set.empty Set.empty Dict.empty Nothing
+  ( Model (webSocketBaseUrl ++ "/store") Set.empty Set.empty Dict.empty Dict.empty Dict.empty Nothing Nothing
   , Cmd.none
   )
 
@@ -88,91 +94,80 @@ update msg model =
       in
         ( case dataManipulationsRes of
             Ok dataManipulations ->
-              let
-                (workingModel, topicsById, topicIdsByTimeSlotRoom) =
-                  List.foldl
-                  ( \dataManipulation -> \(model, topicsById, topicIdsByTimeSlotRoom) ->
-                    case dataManipulation.type_ of
-                      "room" ->
-                        let
-                          rooms : Set String
-                          rooms = model.rooms
-                        in
-                          ( { model
-                            | rooms =
-                              case dataManipulation.operation of
-                                Add -> Set.insert dataManipulation.key rooms
-                                Remove -> Set.remove dataManipulation.key rooms
+              List.foldr
+              ( \dataManipulation -> \model ->
+                case dataManipulation.type_ of
+                  "room" ->
+                    let
+                      rooms : Set String
+                      rooms = model.rooms
+                    in
+                      { model
+                      | rooms =
+                        case dataManipulation.operation of
+                          Add -> Set.insert dataManipulation.key rooms
+                          Remove -> Set.remove dataManipulation.key rooms
+                      }
+
+                  "timeSlot" ->
+                    let
+                      timeSlots : Set String
+                      timeSlots = model.timeSlots
+                    in
+                      { model
+                      | timeSlots =
+                        case dataManipulation.operation of
+                          Add -> Set.insert dataManipulation.key timeSlots
+                          Remove -> Set.remove dataManipulation.key timeSlots
+                      }
+
+                  "topic" ->
+                    case dataManipulation.value of
+                      Just value ->
+                        case Decode.decodeValue topicDecoder value of
+                          Ok topic ->
+                            { model
+                            | topicsById = Dict.insert dataManipulation.key topic model.topicsById
                             }
-                          , topicsById
-                          , topicIdsByTimeSlotRoom
-                          )
+                          Err _ -> model
+                      Nothing -> model
 
-                      "timeSlot" ->
-                        let
-                          timeSlots : Set String
-                          timeSlots = model.timeSlots
-                        in
-                          ( { model
-                            | timeSlots =
-                              case dataManipulation.operation of
-                                Add -> Set.insert dataManipulation.key timeSlots
-                                Remove -> Set.remove dataManipulation.key timeSlots
-                            }
-                          , topicsById
-                          , topicIdsByTimeSlotRoom
-                          )
+                  "pin" ->
+                    case dataManipulation.value of
+                      Just value ->
+                        case Decode.decodeValue Decode.string value of
+                          Ok topicId ->
+                            case String.split "|" dataManipulation.key of
+                              [ timeSlot, room ] ->
+                                let
+                                  unpinnedTopicIdsByTimeSlotRoom : Dict (String,String) String
+                                  unpinnedTopicIdsByTimeSlotRoom =
+                                    case Dict.get topicId model.timeSlotRoomsByTopicId of
+                                      Just timeSlotRoom ->
+                                        Dict.remove timeSlotRoom model.topicIdsByTimeSlotRoom
+                                      Nothing -> model.topicIdsByTimeSlotRoom
+                                in
+                                  { model
+                                  | topicIdsByTimeSlotRoom =
+                                    Dict.insert
+                                    (timeSlot, room)
+                                    topicId
+                                    unpinnedTopicIdsByTimeSlotRoom
+                                  , timeSlotRoomsByTopicId =
+                                    Dict.insert
+                                    topicId
+                                    (timeSlot, room)
+                                    model.timeSlotRoomsByTopicId
+                                  }
+                              _ -> model
+                          Err _ -> model
+                      Nothing -> model
 
-                      "topic" ->
-                        ( model
-                        , case dataManipulation.value of
-                            Just value ->
-                              case Decode.decodeValue topicDecoder value of
-                                Ok topic -> Dict.insert dataManipulation.key topic topicsById
-                                Err _ -> topicsById
-                            Nothing ->
-                              topicsById
-                        , topicIdsByTimeSlotRoom
-                        )
+                  _ -> model
+              )
+              model
+              dataManipulations
 
-                      "pin" ->
-                        ( model
-                        , topicsById
-                        , case dataManipulation.value of
-                            Just value ->
-                              case Decode.decodeValue Decode.string value of
-                                Ok topicId ->
-                                  case String.split "|" dataManipulation.key of
-                                    [ timeSlot, room ] ->
-                                      Dict.insert
-                                      (timeSlot, room)
-                                      topicId
-                                      topicIdsByTimeSlotRoom
-                                    _ -> topicIdsByTimeSlotRoom
-                                Err _ -> topicIdsByTimeSlotRoom
-                            Nothing ->
-                              topicIdsByTimeSlotRoom
-                        )
-
-                      _ -> (model, topicsById, topicIdsByTimeSlotRoom)
-                  )
-                  ( model, Dict.empty, Dict.empty )
-                  dataManipulations
-              in
-                { workingModel
-                | topics =
-                  Dict.union
-                  workingModel.topics
-                  ( Dict.foldl
-                    ( \timeSlotRoom -> \topicId -> \accumTopics ->
-                      case Dict.get topicId topicsById of
-                        Just topic -> Dict.insert timeSlotRoom topic accumTopics
-                        Nothing -> accumTopics
-                    )
-                    Dict.empty
-                    topicIdsByTimeSlotRoom
-                  )
-                }
             Err _ -> model
         , Cmd.none
         )
@@ -206,6 +201,34 @@ update msg model =
         , Cmd.none
         )
 
+    SelectTopicToMove topicId ->
+      ( { model | movingTopicId = Just topicId }
+      , Cmd.none
+      )
+
+    DraggingOverRoomTimeSlot timeSlot room ->
+      ( model, Cmd.none )
+
+    MoveTopicToRoomTimeSlot timeSlot room ->
+      ( { model | movingTopicId = Nothing }
+      , case model.movingTopicId of
+          Just topicId ->
+            WebSocket.send model.webSocketUrl
+            ( Encode.encode 0
+              ( Encode.list
+                [ Encode.object
+                  [ ( "type", Encode.string "pin" )
+                  , ( "op",  Encode.string "+" )
+                  , ( "key", Encode.string (timeSlot ++ "|" ++ room) )
+                  , ( "value", Encode.string topicId )
+                  ]
+                ]
+              )
+            )
+
+          Nothing -> Cmd.none
+      )
+
     CreateTopicRequest ->
       ( { model | workingTopic = Nothing }
       , case model.workingTopic of
@@ -214,6 +237,12 @@ update msg model =
             ( Encode.encode 0
               ( Encode.list
                 [ Encode.object
+                  [ ( "type", Encode.string "pin" )
+                  , ( "op",  Encode.string "+" )
+                  , ( "key", Encode.string (timeSlot ++ "|" ++ room) )
+                  , ( "value", Encode.string "new" )
+                  ]
+                , Encode.object
                   [ ( "type", Encode.string "topic" )
                   , ( "op", Encode.string "+" )
                   , ( "key", Encode.string "new" )
@@ -223,12 +252,6 @@ update msg model =
                       , ( "convener", Encode.string topic.convener )
                       ]
                     )
-                  ]
-                , Encode.object
-                  [ ( "type", Encode.string "pin" )
-                  , ( "op", Encode.string "+" )
-                  , ( "key", Encode.string (timeSlot ++ "|" ++ room) )
-                  , ( "value", Encode.string "new" )
                   ]
                 ]
               )
@@ -245,6 +268,21 @@ subscriptions model =
 
 
 -- View
+onDragStart : msg -> Attribute msg
+onDragStart msg =
+  on "dragstart" (Decode.succeed msg)
+
+
+onDragOver : msg -> Attribute msg
+onDragOver msg =
+  onWithOptions "dragover" { defaultOptions | preventDefault = True } (Decode.succeed msg)
+
+
+onDrop : msg -> Attribute msg
+onDrop msg =
+  onWithOptions "drop" { defaultOptions | preventDefault = True } (Decode.succeed msg)
+
+
 tableCellStyle : List (String, String)
 tableCellStyle =
   [ ( "border", "solid #ddd 1px" ) ]
@@ -255,16 +293,19 @@ view model =
   case model.workingTopic of
     Just (timeSlot, room, topic) ->
       div []
-      [ div [] [ textarea [ onInput UpdateWorkingTopicText, cols 80, rows 10 ] [] ]
+      [ div []
+        [ textarea [ onInput UpdateWorkingTopicText, cols 80, rows 10 ]
+          [ text topic.text ]
+        ]
       , div []
         [ text "Convener:"
-        , input [ type_ "text", onInput UpdateWorkingTopicConvener ] []
+        , input [ type_ "text", value topic.convener, onInput UpdateWorkingTopicConvener ] []
         ]
       , div [] [ button [ onClick CreateTopicRequest ] [ text "Save" ] ]
       ]
     Nothing ->
       div []
-      [ table [ style [ ( "border-collapse", "collapse" ) ] ]
+      [ table [ style [ ( "width", "100%" ), ( "border-collapse", "collapse" ) ] ]
         ( ( tr []
             ( ( th [ style tableCellStyle ] [] )
             ::( List.map
@@ -279,13 +320,32 @@ view model =
               ( ( th [ style tableCellStyle ] [ text timeSlot ] )
               ::( List.map
                   ( \room ->
-                    td [ style tableCellStyle ]
-                    ( case Dict.get (timeSlot, room) model.topics of
-                        Just topic ->
-                          [ div [] [ text topic.text ]
-                          , div [ style [ ("font-size", "0.8em") ] ] [ text ("Convener: " ++ topic.convener) ]
-                          ]
-                        Nothing -> [ button [ onClick (ShowAddTopicViewRequest timeSlot room) ] [ text "Add" ] ]
+                    td
+                    [ id (timeSlot ++ "|" ++ room), style tableCellStyle
+                    , onDragOver (DraggingOverRoomTimeSlot timeSlot room), onDrop (MoveTopicToRoomTimeSlot timeSlot room) ]
+                    ( let
+                        maybeTopicWithId : Maybe (String, Topic)
+                        maybeTopicWithId =
+                          Maybe.andThen
+                          ( \topicId ->
+                            Maybe.map
+                            ( \topic -> (topicId, topic) )
+                            ( Dict.get topicId model.topicsById )
+                          )
+                          ( Dict.get (timeSlot, room) model.topicIdsByTimeSlotRoom )
+                      in
+                        case maybeTopicWithId of
+                          Just (topicId, topic) ->
+                            [ div [ id topicId, draggable "true", onDragStart (SelectTopicToMove topicId) ]
+                              [ div [] [ text topic.text ]
+                              , div [ style [ ("font-size", "0.8em") ] ] [ text ("Convener: " ++ topic.convener) ]
+                              ]
+                            ]
+                          Nothing ->
+                            [ button
+                              [ onClick (ShowAddTopicViewRequest timeSlot room) ]
+                              [ text "Add" ]
+                            ]
                     )
                   )
                   ( Set.toList model.rooms )
