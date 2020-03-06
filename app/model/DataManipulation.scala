@@ -14,7 +14,6 @@ object DataManipulation {
   sealed abstract class Operation(val code: String)
   case object Add extends Operation("+")
   case object Remove extends Operation("-")
-  case object Reset extends Operation("reset")
 
   // TODO this whole JSON reads/writes thing can probably be better
   private val topicKeyValueDataManipulationReads: Reads[DataManipulation] =
@@ -40,7 +39,7 @@ object DataManipulation {
       (JsPath \ "key").read[String]
     )(KeyOnlyDataManipulation.apply _)
   private val dataManipulationMetadataReads: Reads[DataManipulation] =
-    (__ \ "op").read[Operation].map(DataManipulationMetadata.apply)
+    (__ \ "op").read[Operation].map(AllRecordDataManipulation.apply)
 
   implicit val reads: Reads[DataManipulation] =
     topicKeyValueDataManipulationReads orElse
@@ -72,7 +71,15 @@ object DataManipulation {
         "value" -> Json.toJson(value)
       )
 
-    case DataManipulationMetadata(operation: Operation) =>
+    case KeyValueDataManipulation(typ: String, operation: Operation, key: String, badValue: Any) =>
+      Json.obj(
+        "type" -> typ,
+        "op" -> operation.code,
+        "key" -> key,
+        "value" -> Json.obj("error" -> "Unrecognized object")
+      )
+
+    case AllRecordDataManipulation(operation: Operation) =>
       Json.obj(
         "op" -> operation.code
       )
@@ -90,6 +97,6 @@ case class KeyValueDataManipulation[T] (
   key: String,
   value: T
 ) extends DataManipulation
-case class DataManipulationMetadata(
+case class AllRecordDataManipulation(
   operation: DataManipulation.Operation
 ) extends DataManipulation
