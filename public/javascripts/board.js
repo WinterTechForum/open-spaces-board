@@ -9455,111 +9455,118 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 														{rooms: _elm_lang$core$Set$empty, timeSlots: _elm_lang$core$Set$empty, topicIdsByTimeSlotRoom: _elm_lang$core$Dict$empty, topicsById: _elm_lang$core$Dict$empty, timeSlotRoomsByTopicId: _elm_lang$core$Dict$empty});
 												}
 											case 'room':
-												var rooms = model.rooms;
 												return _elm_lang$core$Native_Utils.update(
 													model,
 													{
 														rooms: function () {
 															var _p5 = dataManipulation.operation;
 															if (_p5.ctor === 'Add') {
-																return A2(_elm_lang$core$Set$insert, dataManipulation.key, rooms);
+																return A2(_elm_lang$core$Set$insert, dataManipulation.key, model.rooms);
 															} else {
-																return A2(_elm_lang$core$Set$remove, dataManipulation.key, rooms);
+																return A2(_elm_lang$core$Set$remove, dataManipulation.key, model.rooms);
 															}
 														}()
 													});
 											case 'timeSlot':
-												var timeSlots = model.timeSlots;
 												return _elm_lang$core$Native_Utils.update(
 													model,
 													{
 														timeSlots: function () {
 															var _p6 = dataManipulation.operation;
 															if (_p6.ctor === 'Add') {
-																return A2(_elm_lang$core$Set$insert, dataManipulation.key, timeSlots);
+																return A2(_elm_lang$core$Set$insert, dataManipulation.key, model.timeSlots);
 															} else {
-																return A2(_elm_lang$core$Set$remove, dataManipulation.key, timeSlots);
+																return A2(_elm_lang$core$Set$remove, dataManipulation.key, model.timeSlots);
 															}
 														}()
 													});
 											case 'topic':
-												var _p7 = dataManipulation.value;
-												if (_p7.ctor === 'Just') {
-													var _p8 = A2(_elm_lang$core$Json_Decode$decodeValue, _WinterTechForum$open_spaces_board$Board$topicDecoder, _p7._0);
-													if (_p8.ctor === 'Ok') {
-														return _elm_lang$core$Native_Utils.update(
-															model,
-															{
-																topicsById: A3(_elm_lang$core$Dict$insert, dataManipulation.key, _p8._0, model.topicsById)
-															});
+												var _p7 = dataManipulation.operation;
+												if (_p7.ctor === 'Add') {
+													var _p8 = dataManipulation.value;
+													if (_p8.ctor === 'Just') {
+														var _p9 = A2(_elm_lang$core$Json_Decode$decodeValue, _WinterTechForum$open_spaces_board$Board$topicDecoder, _p8._0);
+														if (_p9.ctor === 'Ok') {
+															return _elm_lang$core$Native_Utils.update(
+																model,
+																{
+																	topicsById: A3(_elm_lang$core$Dict$insert, dataManipulation.key, _p9._0, model.topicsById)
+																});
+														} else {
+															return model;
+														}
 													} else {
 														return model;
 													}
 												} else {
-													return model;
+													return _elm_lang$core$Native_Utils.update(
+														model,
+														{
+															topicsById: A2(_elm_lang$core$Dict$remove, dataManipulation.key, model.topicsById)
+														});
 												}
 											case 'pin':
-												var _p9 = dataManipulation.value;
-												if (_p9.ctor === 'Just') {
-													var _p10 = A2(_elm_lang$core$Json_Decode$decodeValue, _elm_lang$core$Json_Decode$string, _p9._0);
-													if (_p10.ctor === 'Ok') {
-														var _p20 = _p10._0;
-														var _p11 = A2(_elm_lang$core$String$split, '|', dataManipulation.key);
-														if (((_p11.ctor === '::') && (_p11._1.ctor === '::')) && (_p11._1._1.ctor === '[]')) {
-															var _p19 = _p11._0;
-															var _p18 = _p11._1._0;
-															var _p12 = function () {
-																var _p13 = A2(_elm_lang$core$Dict$get, _p20, model.timeSlotRoomsByTopicId);
-																if (_p13.ctor === 'Just') {
-																	var _p16 = _p13._0;
-																	var _p14 = A2(
+												var _p10 = dataManipulation.value;
+												if (_p10.ctor === 'Just') {
+													var _p11 = A2(_elm_lang$core$Json_Decode$decodeValue, _elm_lang$core$Json_Decode$string, _p10._0);
+													if (_p11.ctor === 'Ok') {
+														var _p21 = _p11._0;
+														var _p12 = A2(_elm_lang$core$String$split, '|', dataManipulation.key);
+														if (((_p12.ctor === '::') && (_p12._1.ctor === '::')) && (_p12._1._1.ctor === '[]')) {
+															var _p20 = _p12._0;
+															var _p19 = _p12._1._0;
+															var _p13 = function () {
+																var _p14 = A2(_elm_lang$core$Dict$get, _p21, model.timeSlotRoomsByTopicId);
+																if (_p14.ctor === 'Just') {
+																	var _p17 = _p14._0;
+																	var _p15 = A2(
 																		_elm_lang$core$Dict$get,
-																		{ctor: '_Tuple2', _0: _p19, _1: _p18},
+																		{ctor: '_Tuple2', _0: _p20, _1: _p19},
 																		model.topicIdsByTimeSlotRoom);
-																	if (_p14.ctor === 'Just') {
-																		var _p15 = _p14._0;
+																	if (_p15.ctor === 'Just') {
+																		var _p16 = _p15._0;
 																		return {
 																			ctor: '_Tuple2',
-																			_0: A3(_elm_lang$core$Dict$insert, _p16, _p15, model.topicIdsByTimeSlotRoom),
-																			_1: A2(_elm_lang$core$Dict$remove, _p15, model.timeSlotRoomsByTopicId)
+																			_0: A3(_elm_lang$core$Dict$insert, _p17, _p16, model.topicIdsByTimeSlotRoom),
+																			_1: A2(_elm_lang$core$Dict$remove, _p16, model.timeSlotRoomsByTopicId)
 																		};
 																	} else {
 																		return {
 																			ctor: '_Tuple2',
-																			_0: A2(_elm_lang$core$Dict$remove, _p16, model.topicIdsByTimeSlotRoom),
+																			_0: A2(_elm_lang$core$Dict$remove, _p17, model.topicIdsByTimeSlotRoom),
 																			_1: model.timeSlotRoomsByTopicId
 																		};
 																	}
 																} else {
-																	var _p17 = A2(
+																	var _p18 = A2(
 																		_elm_lang$core$Dict$get,
-																		{ctor: '_Tuple2', _0: _p19, _1: _p18},
+																		{ctor: '_Tuple2', _0: _p20, _1: _p19},
 																		model.topicIdsByTimeSlotRoom);
-																	if (_p17.ctor === 'Just') {
+																	if (_p18.ctor === 'Just') {
 																		return {
 																			ctor: '_Tuple2',
 																			_0: model.topicIdsByTimeSlotRoom,
-																			_1: A2(_elm_lang$core$Dict$remove, _p17._0, model.timeSlotRoomsByTopicId)
+																			_1: A2(_elm_lang$core$Dict$remove, _p18._0, model.timeSlotRoomsByTopicId)
 																		};
 																	} else {
 																		return {ctor: '_Tuple2', _0: model.topicIdsByTimeSlotRoom, _1: model.timeSlotRoomsByTopicId};
 																	}
 																}
 															}();
-															var unpinnedTopicIdsByTimeSlotRoom = _p12._0;
-															var displacedTimeSlotRoomsByTopicId = _p12._1;
+															var unpinnedTopicIdsByTimeSlotRoom = _p13._0;
+															var displacedTimeSlotRoomsByTopicId = _p13._1;
 															return _elm_lang$core$Native_Utils.update(
 																model,
 																{
 																	topicIdsByTimeSlotRoom: A3(
 																		_elm_lang$core$Dict$insert,
-																		{ctor: '_Tuple2', _0: _p19, _1: _p18},
-																		_p20,
+																		{ctor: '_Tuple2', _0: _p20, _1: _p19},
+																		_p21,
 																		unpinnedTopicIdsByTimeSlotRoom),
 																	timeSlotRoomsByTopicId: A3(
 																		_elm_lang$core$Dict$insert,
-																		_p20,
-																		{ctor: '_Tuple2', _0: _p19, _1: _p18},
+																		_p21,
+																		{ctor: '_Tuple2', _0: _p20, _1: _p19},
 																		model.timeSlotRoomsByTopicId)
 																});
 														} else {
@@ -9614,15 +9621,15 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 			case 'UpdateWorkingTopicText':
 				var workingTopic = A2(
 					_elm_lang$core$Maybe$map,
-					function (_p21) {
-						var _p22 = _p21;
+					function (_p22) {
+						var _p23 = _p22;
 						return {
 							ctor: '_Tuple4',
-							_0: _p22._0,
-							_1: _p22._1,
-							_2: _p22._2,
+							_0: _p23._0,
+							_1: _p23._1,
+							_2: _p23._2,
 							_3: _elm_lang$core$Native_Utils.update(
-								_p22._3,
+								_p23._3,
 								{text: _p1._0})
 						};
 					},
@@ -9637,15 +9644,15 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 			case 'UpdateWorkingTopicConvener':
 				var workingTopic = A2(
 					_elm_lang$core$Maybe$map,
-					function (_p23) {
-						var _p24 = _p23;
+					function (_p24) {
+						var _p25 = _p24;
 						return {
 							ctor: '_Tuple4',
-							_0: _p24._0,
-							_1: _p24._1,
-							_2: _p24._2,
+							_0: _p25._0,
+							_1: _p25._1,
+							_2: _p25._2,
 							_3: _elm_lang$core$Native_Utils.update(
-								_p24._3,
+								_p25._3,
 								{convener: _p1._0})
 						};
 					},
@@ -9687,15 +9694,28 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'MoveTopicToRoomTimeSlot':
+				var _p29 = _p1._0;
+				var _p28 = _p1._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{movingTopicId: _elm_lang$core$Maybe$Nothing, movingDestinationCandidate: _elm_lang$core$Maybe$Nothing}),
 					_1: function () {
-						var _p25 = model.movingTopicId;
-						if (_p25.ctor === 'Just') {
+						var _p26 = model.movingTopicId;
+						if (_p26.ctor === 'Just') {
+							var _p27 = _p26._0;
 							return A2(
+								_elm_lang$core$Maybe$withDefault,
+								false,
+								A2(
+									_elm_lang$core$Maybe$map,
+									F2(
+										function (x, y) {
+											return _elm_lang$core$Native_Utils.eq(x, y);
+										})(
+										{ctor: '_Tuple2', _0: _p29, _1: _p28}),
+									A2(_elm_lang$core$Dict$get, _p27, model.timeSlotRoomsByTopicId))) ? _elm_lang$core$Platform_Cmd$none : A2(
 								_elm_lang$websocket$WebSocket$send,
 								model.webSocketUrl,
 								A2(
@@ -9727,15 +9747,15 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 																_1: _elm_lang$core$Json_Encode$string(
 																	A2(
 																		_elm_lang$core$Basics_ops['++'],
-																		_p1._0,
-																		A2(_elm_lang$core$Basics_ops['++'], '|', _p1._1)))
+																		_p29,
+																		A2(_elm_lang$core$Basics_ops['++'], '|', _p28)))
 															},
 															_1: {
 																ctor: '::',
 																_0: {
 																	ctor: '_Tuple2',
 																	_0: 'value',
-																	_1: _elm_lang$core$Json_Encode$string(_p25._0)
+																	_1: _elm_lang$core$Json_Encode$string(_p27)
 																},
 																_1: {ctor: '[]'}
 															}
@@ -9749,17 +9769,17 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 						}
 					}()
 				};
-			default:
+			case 'CreateTopicRequest':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{workingTopic: _elm_lang$core$Maybe$Nothing}),
 					_1: function () {
-						var _p26 = model.workingTopic;
-						if (_p26.ctor === 'Just') {
-							var _p28 = _p26._0._2;
-							var _p27 = _p26._0._3;
+						var _p30 = model.workingTopic;
+						if (_p30.ctor === 'Just') {
+							var _p32 = _p30._0._2;
+							var _p31 = _p30._0._3;
 							return A2(
 								_elm_lang$websocket$WebSocket$send,
 								model.webSocketUrl,
@@ -9792,15 +9812,15 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 																_1: _elm_lang$core$Json_Encode$string(
 																	A2(
 																		_elm_lang$core$Basics_ops['++'],
-																		_p26._0._0,
-																		A2(_elm_lang$core$Basics_ops['++'], '|', _p26._0._1)))
+																		_p30._0._0,
+																		A2(_elm_lang$core$Basics_ops['++'], '|', _p30._0._1)))
 															},
 															_1: {
 																ctor: '::',
 																_0: {
 																	ctor: '_Tuple2',
 																	_0: 'value',
-																	_1: _elm_lang$core$Json_Encode$string(_p28)
+																	_1: _elm_lang$core$Json_Encode$string(_p32)
 																},
 																_1: {ctor: '[]'}
 															}
@@ -9829,7 +9849,7 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 																_0: {
 																	ctor: '_Tuple2',
 																	_0: 'key',
-																	_1: _elm_lang$core$Json_Encode$string(_p28)
+																	_1: _elm_lang$core$Json_Encode$string(_p32)
 																},
 																_1: {
 																	ctor: '::',
@@ -9842,14 +9862,14 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 																				_0: {
 																					ctor: '_Tuple2',
 																					_0: 'text',
-																					_1: _elm_lang$core$Json_Encode$string(_p27.text)
+																					_1: _elm_lang$core$Json_Encode$string(_p31.text)
 																				},
 																				_1: {
 																					ctor: '::',
 																					_0: {
 																						ctor: '_Tuple2',
 																						_0: 'convener',
-																						_1: _elm_lang$core$Json_Encode$string(_p27.convener)
+																						_1: _elm_lang$core$Json_Encode$string(_p31.convener)
 																					},
 																					_1: {ctor: '[]'}
 																				}
@@ -9868,8 +9888,53 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 						}
 					}()
 				};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: A2(
+						_elm_lang$websocket$WebSocket$send,
+						model.webSocketUrl,
+						A2(
+							_elm_lang$core$Json_Encode$encode,
+							0,
+							_elm_lang$core$Json_Encode$list(
+								{
+									ctor: '::',
+									_0: _elm_lang$core$Json_Encode$object(
+										{
+											ctor: '::',
+											_0: {
+												ctor: '_Tuple2',
+												_0: 'type',
+												_1: _elm_lang$core$Json_Encode$string('topic')
+											},
+											_1: {
+												ctor: '::',
+												_0: {
+													ctor: '_Tuple2',
+													_0: 'op',
+													_1: _elm_lang$core$Json_Encode$string('-')
+												},
+												_1: {
+													ctor: '::',
+													_0: {
+														ctor: '_Tuple2',
+														_0: 'key',
+														_1: _elm_lang$core$Json_Encode$string(_p1._0)
+													},
+													_1: {ctor: '[]'}
+												}
+											}
+										}),
+									_1: {ctor: '[]'}
+								})))
+				};
 		}
 	});
+var _WinterTechForum$open_spaces_board$Board$DeleteTopicRequest = function (a) {
+	return {ctor: 'DeleteTopicRequest', _0: a};
+};
 var _WinterTechForum$open_spaces_board$Board$CreateTopicRequest = {ctor: 'CreateTopicRequest'};
 var _WinterTechForum$open_spaces_board$Board$MoveTopicToRoomTimeSlot = F2(
 	function (a, b) {
@@ -9898,9 +9963,9 @@ var _WinterTechForum$open_spaces_board$Board$ShowAddTopicViewRequest = F2(
 		return {ctor: 'ShowAddTopicViewRequest', _0: a, _1: b};
 	});
 var _WinterTechForum$open_spaces_board$Board$view = function (model) {
-	var _p29 = model.workingTopic;
-	if (_p29.ctor === 'Just') {
-		var _p30 = _p29._0._3;
+	var _p33 = model.workingTopic;
+	if (_p33.ctor === 'Just') {
+		var _p34 = _p33._0._3;
 		return A2(
 			_elm_lang$html$Html$div,
 			{ctor: '[]'},
@@ -9928,7 +9993,7 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 							},
 							{
 								ctor: '::',
-								_0: _elm_lang$html$Html$text(_p30.text),
+								_0: _elm_lang$html$Html$text(_p34.text),
 								_1: {ctor: '[]'}
 							}),
 						_1: {ctor: '[]'}
@@ -9950,7 +10015,7 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 										_0: _elm_lang$html$Html_Attributes$type_('text'),
 										_1: {
 											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$value(_p30.convener),
+											_0: _elm_lang$html$Html_Attributes$value(_p34.convener),
 											_1: {
 												ctor: '::',
 												_0: _elm_lang$html$Html_Events$onInput(_WinterTechForum$open_spaces_board$Board$UpdateWorkingTopicConvener),
@@ -10097,9 +10162,9 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 																	false,
 																	A2(
 																		_elm_lang$core$Maybe$map,
-																		function (_p31) {
-																			var _p32 = _p31;
-																			return _elm_lang$core$Native_Utils.eq(_p32._0, timeSlot) && _elm_lang$core$Native_Utils.eq(_p32._1, room);
+																		function (_p35) {
+																			var _p36 = _p35;
+																			return _elm_lang$core$Native_Utils.eq(_p36._0, timeSlot) && _elm_lang$core$Native_Utils.eq(_p36._1, room);
 																		},
 																		model.movingDestinationCandidate));
 																return _elm_lang$html$Html_Attributes$class(
@@ -10137,24 +10202,24 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 																_elm_lang$core$Dict$get,
 																{ctor: '_Tuple2', _0: timeSlot, _1: room},
 																model.topicIdsByTimeSlotRoom));
-														var _p33 = maybeTopicWithId;
-														if (_p33.ctor === 'Just') {
-															var _p35 = _p33._0._0;
-															var _p34 = _p33._0._1;
+														var _p37 = maybeTopicWithId;
+														if (_p37.ctor === 'Just') {
+															var _p39 = _p37._0._0;
+															var _p38 = _p37._0._1;
 															return {
 																ctor: '::',
 																_0: A2(
 																	_elm_lang$html$Html$div,
 																	{
 																		ctor: '::',
-																		_0: _elm_lang$html$Html_Attributes$id(_p35),
+																		_0: _elm_lang$html$Html_Attributes$id(_p39),
 																		_1: {
 																			ctor: '::',
 																			_0: _elm_lang$html$Html_Attributes$draggable('true'),
 																			_1: {
 																				ctor: '::',
 																				_0: _WinterTechForum$open_spaces_board$Board$onDragStart(
-																					_WinterTechForum$open_spaces_board$Board$SelectTopicToMove(_p35)),
+																					_WinterTechForum$open_spaces_board$Board$SelectTopicToMove(_p39)),
 																				_1: {ctor: '[]'}
 																			}
 																		}
@@ -10166,7 +10231,7 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 																			{ctor: '[]'},
 																			{
 																				ctor: '::',
-																				_0: _elm_lang$html$Html$text(_p34.text),
+																				_0: _elm_lang$html$Html$text(_p38.text),
 																				_1: {ctor: '[]'}
 																			}),
 																		_1: {
@@ -10186,29 +10251,45 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 																				{
 																					ctor: '::',
 																					_0: _elm_lang$html$Html$text(
-																						A2(_elm_lang$core$Basics_ops['++'], 'Convener: ', _p34.convener)),
+																						A2(_elm_lang$core$Basics_ops['++'], 'Convener: ', _p38.convener)),
 																					_1: {ctor: '[]'}
 																				}),
-																			_1: {ctor: '[]'}
+																			_1: {
+																				ctor: '::',
+																				_0: A2(
+																					_elm_lang$html$Html$button,
+																					{
+																						ctor: '::',
+																						_0: _elm_lang$html$Html_Events$onClick(
+																							A4(_WinterTechForum$open_spaces_board$Board$ShowEditTopicViewRequest, timeSlot, room, _p39, _p38)),
+																						_1: {ctor: '[]'}
+																					},
+																					{
+																						ctor: '::',
+																						_0: _elm_lang$html$Html$text('Edit'),
+																						_1: {ctor: '[]'}
+																					}),
+																				_1: {
+																					ctor: '::',
+																					_0: A2(
+																						_elm_lang$html$Html$button,
+																						{
+																							ctor: '::',
+																							_0: _elm_lang$html$Html_Events$onClick(
+																								_WinterTechForum$open_spaces_board$Board$DeleteTopicRequest(_p39)),
+																							_1: {ctor: '[]'}
+																						},
+																						{
+																							ctor: '::',
+																							_0: _elm_lang$html$Html$text('Delete'),
+																							_1: {ctor: '[]'}
+																						}),
+																					_1: {ctor: '[]'}
+																				}
+																			}
 																		}
 																	}),
-																_1: {
-																	ctor: '::',
-																	_0: A2(
-																		_elm_lang$html$Html$button,
-																		{
-																			ctor: '::',
-																			_0: _elm_lang$html$Html_Events$onClick(
-																				A4(_WinterTechForum$open_spaces_board$Board$ShowEditTopicViewRequest, timeSlot, room, _p35, _p34)),
-																			_1: {ctor: '[]'}
-																		},
-																		{
-																			ctor: '::',
-																			_0: _elm_lang$html$Html$text('Edit'),
-																			_1: {ctor: '[]'}
-																		}),
-																	_1: {ctor: '[]'}
-																}
+																_1: {ctor: '[]'}
 															};
 														} else {
 															return {

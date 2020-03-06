@@ -51,6 +51,7 @@ type Msg
   | DraggingOverRoomTimeSlot String String
   | MoveTopicToRoomTimeSlot String String
   | CreateTopicRequest
+  | DeleteTopicRequest String
 
 
 -- Init
@@ -115,39 +116,37 @@ update msg model =
                         }
 
                   "room" ->
-                    let
-                      rooms : Set String
-                      rooms = model.rooms
-                    in
-                      { model
-                      | rooms =
-                        case dataManipulation.operation of
-                          Add -> Set.insert dataManipulation.key rooms
-                          Remove -> Set.remove dataManipulation.key rooms
-                      }
+                    { model
+                    | rooms =
+                      case dataManipulation.operation of
+                        Add -> Set.insert dataManipulation.key model.rooms
+                        Remove -> Set.remove dataManipulation.key model.rooms
+                    }
 
                   "timeSlot" ->
-                    let
-                      timeSlots : Set String
-                      timeSlots = model.timeSlots
-                    in
-                      { model
-                      | timeSlots =
-                        case dataManipulation.operation of
-                          Add -> Set.insert dataManipulation.key timeSlots
-                          Remove -> Set.remove dataManipulation.key timeSlots
-                      }
+                    { model
+                    | timeSlots =
+                      case dataManipulation.operation of
+                        Add -> Set.insert dataManipulation.key model.timeSlots
+                        Remove -> Set.remove dataManipulation.key model.timeSlots
+                    }
 
                   "topic" ->
-                    case dataManipulation.value of
-                      Just value ->
-                        case Decode.decodeValue topicDecoder value of
-                          Ok topic ->
-                            { model
-                            | topicsById = Dict.insert dataManipulation.key topic model.topicsById
-                            }
-                          Err _ -> model
-                      Nothing -> model
+                    case dataManipulation.operation of
+                      Add ->
+                        case dataManipulation.value of
+                          Just value ->
+                            case Decode.decodeValue topicDecoder value of
+                              Ok topic ->
+                                { model
+                                | topicsById = Dict.insert dataManipulation.key topic model.topicsById
+                                }
+                              Err _ -> model
+                          Nothing -> model
+                      Remove ->
+                        { model
+                        | topicsById = Dict.remove dataManipulation.key model.topicsById
+                        }
 
                   "pin" ->
                     case dataManipulation.value of
@@ -258,18 +257,21 @@ update msg model =
       ( { model | movingTopicId = Nothing, movingDestinationCandidate = Nothing }
       , case model.movingTopicId of
           Just topicId ->
-            WebSocket.send model.webSocketUrl
-            ( Encode.encode 0
-              ( Encode.list
-                [ Encode.object
-                  [ ( "type", Encode.string "pin" )
-                  , ( "op",  Encode.string "+" )
-                  , ( "key", Encode.string (timeSlot ++ "|" ++ room) )
-                  , ( "value", Encode.string topicId )
+            if Maybe.withDefault False (Maybe.map ((==) (timeSlot,room)) (Dict.get topicId model.timeSlotRoomsByTopicId)) then
+              Cmd.none
+            else
+              WebSocket.send model.webSocketUrl
+              ( Encode.encode 0
+                ( Encode.list
+                  [ Encode.object
+                    [ ( "type", Encode.string "pin" )
+                    , ( "op",  Encode.string "+" )
+                    , ( "key", Encode.string (timeSlot ++ "|" ++ room) )
+                    , ( "value", Encode.string topicId )
+                    ]
                   ]
-                ]
+                )
               )
-            )
 
           Nothing -> Cmd.none
       )
@@ -303,6 +305,21 @@ update msg model =
             )
 
           Nothing -> Cmd.none
+      )
+
+    DeleteTopicRequest topicId ->
+      ( model
+      , WebSocket.send model.webSocketUrl
+        ( Encode.encode 0
+          ( Encode.list
+            [ Encode.object
+              [ ( "type", Encode.string "topic" )
+              , ( "op", Encode.string "-" )
+              , ( "key", Encode.string topicId )
+              ]
+            ]
+          )
+        )
       )
 
 
@@ -399,10 +416,13 @@ view model =
                             [ div [ id topicId, draggable "true", onDragStart (SelectTopicToMove topicId) ]
                               [ div [] [ text topic.text ]
                               , div [ style [ ("font-size", "0.8em") ] ] [ text ("Convener: " ++ topic.convener) ]
+                              , button
+                                [ onClick (ShowEditTopicViewRequest timeSlot room topicId topic) ]
+                                [ text "Edit" ]
+                              , button
+                                [ onClick (DeleteTopicRequest topicId) ]
+                                [ text "Delete" ]
                               ]
-                            , button
-                              [ onClick (ShowEditTopicViewRequest timeSlot room topicId topic) ]
-                              [ text "Edit" ]
                             ]
                           Nothing ->
                             [ button
