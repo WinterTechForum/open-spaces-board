@@ -81,7 +81,9 @@ object DataManipulation {
 
     case AllRecordDataManipulation(operation: Operation) =>
       Json.obj(
-        "op" -> operation.code
+        "type" -> "*",
+        "op" -> operation.code,
+        "key" -> "*"
       )
   }
 }

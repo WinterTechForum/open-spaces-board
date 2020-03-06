@@ -102,6 +102,18 @@ update msg model =
               List.foldr
               ( \dataManipulation -> \model ->
                 case dataManipulation.type_ of
+                  "*" ->
+                    case dataManipulation.operation of
+                      Add -> model
+                      Remove ->
+                        { model
+                        | rooms = Set.empty
+                        , timeSlots = Set.empty
+                        , topicIdsByTimeSlotRoom = Dict.empty
+                        , topicsById = Dict.empty
+                        , timeSlotRoomsByTopicId = Dict.empty
+                        }
+
                   "room" ->
                     let
                       rooms : Set String

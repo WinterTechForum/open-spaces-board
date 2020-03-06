@@ -215,7 +215,7 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration) extends Actor wi
 
     case ListenerRegistration(listener: ActorRef) =>
       listener ! StorageUpdateEvent(
-        dataManipulations
+        dataManipulations :+ AllRecordDataManipulation(DataManipulation.Remove)
         // TODO move this to Board#minimalDataManipulations
 //        board.rooms.toSeq.map { room =>
 //          KeyOnlyDataManipulation("room", DataManipulation.Add, room)
