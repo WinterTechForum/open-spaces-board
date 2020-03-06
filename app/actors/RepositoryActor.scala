@@ -2,13 +2,8 @@ package actors
 
 import java.net.URLEncoder
 
-import akka.Done
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status, Terminated}
-import akka.http.scaladsl.model.ws.{TextMessage, WebSocketUpgradeResponse, Message => WebSocketMessage}
-import akka.http.scaladsl.{Http, HttpExt}
 import akka.pattern.{BackoffOpts, BackoffSupervisor, pipe}
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Sink, Source}
 import model._
 import model.slack.{Channel, ConversationsHistory, ConversationsList, Message}
 import play.api.Configuration
@@ -30,13 +25,13 @@ object RepositoryActor {
   // Internal messages
   private case class Initialized(channelId: String, dataManipulations: Seq[DataManipulation])
 
-  def props(ws: WSClient, mat: Materializer, cfg: Configuration): Props =
+  def props(ws: WSClient, cfg: Configuration): Props =
     // BackoffSupervisor pattern, as described here -
     // https://doc.akka.io/docs/akka/2.5/general/supervision.html#delayed-restarts-with-the-backoffsupervisor-pattern
     // So that we don't get throttled by Slack
     BackoffSupervisor.props(
       BackoffOpts.onStop(
-        Props(new RepositoryActor(ws, cfg)(mat)),
+        Props(new RepositoryActor(ws, cfg)),
         childName = "supervised",
         minBackoff = 3.seconds,
         maxBackoff = 30.seconds,
@@ -122,15 +117,13 @@ object RepositoryActor {
 
   private case class ChannelNotFoundException(name: String) extends IllegalArgumentException
 }
-private class RepositoryActor(ws: WSClient, cfg: Configuration)(implicit mat: Materializer)
-    extends Actor with ActorLogging {
+private class RepositoryActor(ws: WSClient, cfg: Configuration) extends Actor with ActorLogging {
   import RepositoryActor._
   import context.dispatcher
   import model.slack.ConversationsHistory.reads
 
   private val slackBaseUrl: String = cfg.get[String]("open-spaces-board.storage.slack.api.base-url")
   private val slackToken: String = cfg.get[Seq[String]]("open-spaces-board.storage.slack.api.token").mkString
-  private val slackWebSocketToken: String = cfg.get[Seq[String]]("open-spaces-board.storage.slack.api.websocket-token").mkString
 
   private def slackApiGet(url: String): Future[WSResponse] =
     ws.url(url).execute().
@@ -176,7 +169,6 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration)(implicit mat: Ma
           s"${slackBaseUrl}/auth.test?token=${slackToken}"
         ).
         map { resp: WSResponse => (resp.json \ "bot_id").as[String] }
-      _ = subscribeToSlackMessages(botId, channelId)
       dataManipulations: Seq[DataManipulation] <-
         slackApiGet(
           s"${slackBaseUrl}/conversations.history?token=${slackToken}&channel=${channelId}&limit=1000"
@@ -201,8 +193,12 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration)(implicit mat: Ma
 
   private val initializing: Receive = {
     case Initialized(channelId, dataManipulations) =>
-      log.info(s"RepositoryActor initialized with channelId ${channelId}...")
-//      val board: Board = applyDataManipulations(dataManipulations, Board())
+      val compactedDataManipulations: Seq[DataManipulation] =
+        Board.fromDataManipulations(dataManipulations).compactedDataManipulations
+      for (group: Seq[DataManipulation] <- compactedDataManipulations.grouped(100)) {
+        slackApiGet(s"${slackBaseUrl}/chat.postMessage?token=${slackToken}&channel=${channelId}&text=${urlEncodedJson(group)}")
+      }
+
       context.become(
         running(compactedDataManipulations, Set(), channelId)
       )
