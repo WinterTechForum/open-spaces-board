@@ -36,6 +36,7 @@ type alias Model =
   , timeSlotRoomsByTopicId : Dict String (String, String)
   , workingTopic : Maybe (String, String, String, Topic)
   , movingTopicId : Maybe String
+  , movingDestinationCandidate : Maybe (String, String)
   }
 
 
@@ -55,7 +56,9 @@ type Msg
 -- Init
 init : String -> (Model, Cmd Msg)
 init webSocketBaseUrl =
-  ( Model (webSocketBaseUrl ++ "/store") Set.empty Set.empty Dict.empty Dict.empty Dict.empty Nothing Nothing
+  ( Model (webSocketBaseUrl ++ "/store")
+    Set.empty Set.empty Dict.empty Dict.empty Dict.empty
+    Nothing Nothing Nothing
   , Cmd.none
   )
 
@@ -234,11 +237,13 @@ update msg model =
       , Cmd.none
       )
 
-    DraggingOverRoomTimeSlot _ _ ->
-      ( model, Cmd.none )
+    DraggingOverRoomTimeSlot timeSlot room ->
+      ( { model | movingDestinationCandidate = Just (timeSlot, room) }
+      , Cmd.none
+      )
 
     MoveTopicToRoomTimeSlot timeSlot room ->
-      ( { model | movingTopicId = Nothing }
+      ( { model | movingTopicId = Nothing, movingDestinationCandidate = Nothing }
       , case model.movingTopicId of
           Just topicId ->
             WebSocket.send model.webSocketUrl
@@ -352,8 +357,20 @@ view model =
               ::( List.map
                   ( \room ->
                     td
-                    [ id (timeSlot ++ "|" ++ room), style tableCellStyle
-                    , onDragOver (DraggingOverRoomTimeSlot timeSlot room), onDrop (MoveTopicToRoomTimeSlot timeSlot room) ]
+                    [ id (timeSlot ++ "|" ++ room)
+                    , let
+                        isDestinationCandidate : Bool
+                        isDestinationCandidate =
+                          Maybe.withDefault
+                          False
+                          ( Maybe.map
+                            (\(dstTimeSlot, dstRoom) -> dstTimeSlot == timeSlot && dstRoom == room)
+                            model.movingDestinationCandidate
+                          )
+                      in (class (if isDestinationCandidate then "destination-candidate" else ""))
+                    , style tableCellStyle
+                    , onDragOver (DraggingOverRoomTimeSlot timeSlot room), onDrop (MoveTopicToRoomTimeSlot timeSlot room)
+                    ]
                     ( let
                         maybeTopicWithId : Maybe (String, Topic)
                         maybeTopicWithId =

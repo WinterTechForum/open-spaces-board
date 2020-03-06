@@ -9384,14 +9384,14 @@ var _WinterTechForum$open_spaces_board$Board$topicDecoder = A3(
 	_WinterTechForum$open_spaces_board$Board$Topic,
 	A2(_elm_lang$core$Json_Decode$field, 'text', _elm_lang$core$Json_Decode$string),
 	A2(_elm_lang$core$Json_Decode$field, 'convener', _elm_lang$core$Json_Decode$string));
-var _WinterTechForum$open_spaces_board$Board$Model = F8(
-	function (a, b, c, d, e, f, g, h) {
-		return {webSocketUrl: a, rooms: b, timeSlots: c, topicIdsByTimeSlotRoom: d, topicsById: e, timeSlotRoomsByTopicId: f, workingTopic: g, movingTopicId: h};
+var _WinterTechForum$open_spaces_board$Board$Model = F9(
+	function (a, b, c, d, e, f, g, h, i) {
+		return {webSocketUrl: a, rooms: b, timeSlots: c, topicIdsByTimeSlotRoom: d, topicsById: e, timeSlotRoomsByTopicId: f, workingTopic: g, movingTopicId: h, movingDestinationCandidate: i};
 	});
 var _WinterTechForum$open_spaces_board$Board$init = function (webSocketBaseUrl) {
 	return {
 		ctor: '_Tuple2',
-		_0: A8(
+		_0: A9(
 			_WinterTechForum$open_spaces_board$Board$Model,
 			A2(_elm_lang$core$Basics_ops['++'], webSocketBaseUrl, '/store'),
 			_elm_lang$core$Set$empty,
@@ -9399,6 +9399,7 @@ var _WinterTechForum$open_spaces_board$Board$init = function (webSocketBaseUrl) 
 			_elm_lang$core$Dict$empty,
 			_elm_lang$core$Dict$empty,
 			_elm_lang$core$Dict$empty,
+			_elm_lang$core$Maybe$Nothing,
 			_elm_lang$core$Maybe$Nothing,
 			_elm_lang$core$Maybe$Nothing),
 		_1: _elm_lang$core$Platform_Cmd$none
@@ -9666,13 +9667,22 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'DraggingOverRoomTimeSlot':
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{
+							movingDestinationCandidate: _elm_lang$core$Maybe$Just(
+								{ctor: '_Tuple2', _0: _p1._0, _1: _p1._1})
+						}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
 			case 'MoveTopicToRoomTimeSlot':
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{movingTopicId: _elm_lang$core$Maybe$Nothing}),
+						{movingTopicId: _elm_lang$core$Maybe$Nothing, movingDestinationCandidate: _elm_lang$core$Maybe$Nothing}),
 					_1: function () {
 						var _p24 = model.movingTopicId;
 						if (_p24.ctor === 'Just') {
@@ -10072,16 +10082,33 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 																A2(_elm_lang$core$Basics_ops['++'], '|', room))),
 														_1: {
 															ctor: '::',
-															_0: _elm_lang$html$Html_Attributes$style(_WinterTechForum$open_spaces_board$Board$tableCellStyle),
+															_0: function () {
+																var isDestinationCandidate = A2(
+																	_elm_lang$core$Maybe$withDefault,
+																	false,
+																	A2(
+																		_elm_lang$core$Maybe$map,
+																		function (_p30) {
+																			var _p31 = _p30;
+																			return _elm_lang$core$Native_Utils.eq(_p31._0, timeSlot) && _elm_lang$core$Native_Utils.eq(_p31._1, room);
+																		},
+																		model.movingDestinationCandidate));
+																return _elm_lang$html$Html_Attributes$class(
+																	isDestinationCandidate ? 'destination-candidate' : '');
+															}(),
 															_1: {
 																ctor: '::',
-																_0: _WinterTechForum$open_spaces_board$Board$onDragOver(
-																	A2(_WinterTechForum$open_spaces_board$Board$DraggingOverRoomTimeSlot, timeSlot, room)),
+																_0: _elm_lang$html$Html_Attributes$style(_WinterTechForum$open_spaces_board$Board$tableCellStyle),
 																_1: {
 																	ctor: '::',
-																	_0: _WinterTechForum$open_spaces_board$Board$onDrop(
-																		A2(_WinterTechForum$open_spaces_board$Board$MoveTopicToRoomTimeSlot, timeSlot, room)),
-																	_1: {ctor: '[]'}
+																	_0: _WinterTechForum$open_spaces_board$Board$onDragOver(
+																		A2(_WinterTechForum$open_spaces_board$Board$DraggingOverRoomTimeSlot, timeSlot, room)),
+																	_1: {
+																		ctor: '::',
+																		_0: _WinterTechForum$open_spaces_board$Board$onDrop(
+																			A2(_WinterTechForum$open_spaces_board$Board$MoveTopicToRoomTimeSlot, timeSlot, room)),
+																		_1: {ctor: '[]'}
+																	}
 																}
 															}
 														}
@@ -10101,24 +10128,24 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 																_elm_lang$core$Dict$get,
 																{ctor: '_Tuple2', _0: timeSlot, _1: room},
 																model.topicIdsByTimeSlotRoom));
-														var _p30 = maybeTopicWithId;
-														if (_p30.ctor === 'Just') {
-															var _p32 = _p30._0._0;
-															var _p31 = _p30._0._1;
+														var _p32 = maybeTopicWithId;
+														if (_p32.ctor === 'Just') {
+															var _p34 = _p32._0._0;
+															var _p33 = _p32._0._1;
 															return {
 																ctor: '::',
 																_0: A2(
 																	_elm_lang$html$Html$div,
 																	{
 																		ctor: '::',
-																		_0: _elm_lang$html$Html_Attributes$id(_p32),
+																		_0: _elm_lang$html$Html_Attributes$id(_p34),
 																		_1: {
 																			ctor: '::',
 																			_0: _elm_lang$html$Html_Attributes$draggable('true'),
 																			_1: {
 																				ctor: '::',
 																				_0: _WinterTechForum$open_spaces_board$Board$onDragStart(
-																					_WinterTechForum$open_spaces_board$Board$SelectTopicToMove(_p32)),
+																					_WinterTechForum$open_spaces_board$Board$SelectTopicToMove(_p34)),
 																				_1: {ctor: '[]'}
 																			}
 																		}
@@ -10130,7 +10157,7 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 																			{ctor: '[]'},
 																			{
 																				ctor: '::',
-																				_0: _elm_lang$html$Html$text(_p31.text),
+																				_0: _elm_lang$html$Html$text(_p33.text),
 																				_1: {ctor: '[]'}
 																			}),
 																		_1: {
@@ -10150,7 +10177,7 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 																				{
 																					ctor: '::',
 																					_0: _elm_lang$html$Html$text(
-																						A2(_elm_lang$core$Basics_ops['++'], 'Convener: ', _p31.convener)),
+																						A2(_elm_lang$core$Basics_ops['++'], 'Convener: ', _p33.convener)),
 																					_1: {ctor: '[]'}
 																				}),
 																			_1: {ctor: '[]'}
@@ -10163,7 +10190,7 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 																		{
 																			ctor: '::',
 																			_0: _elm_lang$html$Html_Events$onClick(
-																				A4(_WinterTechForum$open_spaces_board$Board$ShowEditTopicViewRequest, timeSlot, room, _p32, _p31)),
+																				A4(_WinterTechForum$open_spaces_board$Board$ShowEditTopicViewRequest, timeSlot, room, _p34, _p33)),
 																			_1: {ctor: '[]'}
 																		},
 																		{
