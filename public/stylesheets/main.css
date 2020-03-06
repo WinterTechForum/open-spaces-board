@@ -1,6 +1,23 @@
 body {
   font-family: sans-serif;
 }
+table.board {
+  table-layout: fixed;
+}
+table.board th {
+  border: solid #ddd 1px;
+}
+table.board td {
+  border: solid #ddd 1px;
+  vertical-align: top;
+}
+div.topic {
+  border: solid #f2d4a6 1px;
+  background-color: #ffffcc;
+}
+div.unpinned {
+  float: left;
+}
 .destination-candidate {
   background-color: #f2f2f2;
 }
