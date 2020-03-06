@@ -2,8 +2,13 @@ package actors
 
 import java.net.URLEncoder
 
+import akka.Done
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status, Terminated}
+import akka.http.scaladsl.model.ws.{TextMessage, WebSocketUpgradeResponse, Message => WebSocketMessage}
+import akka.http.scaladsl.{Http, HttpExt}
 import akka.pattern.{BackoffOpts, BackoffSupervisor, pipe}
+import akka.stream.Materializer
+import akka.stream.scaladsl.{Flow, Sink, Source}
 import model._
 import model.slack.{Channel, ConversationsHistory, ConversationsList, Message}
 import play.api.Configuration
@@ -25,13 +30,13 @@ object RepositoryActor {
   // Internal messages
   private case class Initialized(channelId: String, dataManipulations: Seq[DataManipulation])
 
-  def props(ws: WSClient, cfg: Configuration): Props =
+  def props(ws: WSClient, mat: Materializer, cfg: Configuration): Props =
     // BackoffSupervisor pattern, as described here -
     // https://doc.akka.io/docs/akka/2.5/general/supervision.html#delayed-restarts-with-the-backoffsupervisor-pattern
     // So that we don't get throttled by Slack
     BackoffSupervisor.props(
       BackoffOpts.onStop(
-        Props(new RepositoryActor(ws, cfg)),
+        Props(new RepositoryActor(ws, cfg)(mat)),
         childName = "supervised",
         minBackoff = 3.seconds,
         maxBackoff = 30.seconds,
@@ -48,13 +53,15 @@ object RepositoryActor {
 
   private case class ChannelNotFoundException(name: String) extends IllegalArgumentException
 }
-private class RepositoryActor(ws: WSClient, cfg: Configuration) extends Actor with ActorLogging {
+private class RepositoryActor(ws: WSClient, cfg: Configuration)(implicit mat: Materializer)
+    extends Actor with ActorLogging {
   import RepositoryActor._
   import context.dispatcher
   import model.slack.ConversationsHistory.reads
 
   private val slackBaseUrl: String = cfg.get[String]("open-spaces-board.storage.slack.api.base-url")
   private val slackToken: String = cfg.get[Seq[String]]("open-spaces-board.storage.slack.api.token").mkString
+  private val slackWebSocketToken: String = cfg.get[Seq[String]]("open-spaces-board.storage.slack.api.websocket-token").mkString
 
   private def slackApiGet(url: String): Future[WSResponse] =
     ws.url(url).execute().
@@ -73,7 +80,41 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration) extends Actor wi
         )
     }
 
-//  private def applyDataManipulations(
+    private def subscribeToSlackMessages(botId: String, channelId: String): Unit =
+      for {
+        joinResp: WSResponse <-
+          slackApiGet(
+            s"${slackBaseUrl}/conversations.history?token=${slackWebSocketToken}&channel=${channelId}&limit=1000"
+          ).
+          recover {
+            case t: Throwable =>
+              t.printStackTrace()
+              throw t
+          }
+        resp: WSResponse <- slackApiGet(s"${slackBaseUrl}/rtm.connect?token=${slackWebSocketToken}")
+      } {
+        log.info("!!!")
+        // Play's WSClient unfortunately does not handle websocket connections
+        // Consider rewriting other HTTP client calls to just use Akka HTTP as well?
+        val http: HttpExt = Http()(context.system)
+
+        val incoming: Sink[WebSocketMessage, Future[Done]] =
+          Sink.foreach[WebSocketMessage] {
+            case message: TextMessage.Strict =>
+              println(message.text)
+          }
+        val outgoing: Source[WebSocketMessage, _] =
+          Source.tick(0.second, 5.minutes, TextMessage("""{"id": 1,"type": "ping"}"""))
+        val webSocketFlow: Flow[WebSocketMessage, WebSocketMessage, Future[WebSocketUpgradeResponse]] =
+          http.webSocketClientFlow((resp.json \ "url").as[String])
+
+        log.info("Establishing WebSocket connection to listen for data manipulation updates...")
+        val (_, done: Future[Done]) = webSocketFlow.runWith(outgoing, incoming)
+        done.foreach(_ => subscribeToSlackMessages(botId, channelId))
+      }
+
+
+  //  private def applyDataManipulations(
 //      dataManipulations: Seq[DataManipulation], board: Board): Board = {
 //    val (enrichedBoard: Board, topicsById: Map[String,Topic], topicIdsByTimeSlotRoom: Map[(String,String),String]) =
 //      // Data manipulations are most recent first, hence folding right instead of left
@@ -143,6 +184,7 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration) extends Actor wi
           s"${slackBaseUrl}/auth.test?token=${slackToken}"
         ).
         map { resp: WSResponse => (resp.json \ "bot_id").as[String] }
+      _ = subscribeToSlackMessages(botId, channelId)
       dataManipulations: Seq[DataManipulation] <-
         slackApiGet(
           s"${slackBaseUrl}/conversations.history?token=${slackToken}&channel=${channelId}&limit=1000"
@@ -163,6 +205,7 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration) extends Actor wi
 
   private val initializing: Receive = {
     case Initialized(channelId, dataManipulations) =>
+      log.info(s"RepositoryActor initialized with channelId ${channelId}...")
 //      val board: Board = applyDataManipulations(dataManipulations, Board())
       context.become(
         running(dataManipulations, Set(), channelId)

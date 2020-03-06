@@ -20,7 +20,7 @@ class MainController @Inject()
     (implicit system: ActorSystem, mat: Materializer)
     extends AbstractController(cc) {
   private val repositoryActor: ActorRef =
-    system.actorOf(RepositoryActor.props(ws, cfg), "repository")
+    system.actorOf(RepositoryActor.props(ws, mat, cfg), "repository")
 
   def index(): Action[AnyContent] = Action { implicit request: Request[AnyContent] =>
     Ok(views.html.index())
