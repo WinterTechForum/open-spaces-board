@@ -75,8 +75,12 @@ object RepositoryActor {
             case KeyValueDataManipulation("topic", DataManipulation.Add, id: String, topic: Topic) =>
               board.copy(topicsById = topicsById + (id -> topic))
 
-            case KeyValueDataManipulation("topic", DataManipulation.Remove, id: String, _) =>
-              board.copy(topicsById = topicsById - id)
+            case KeyOnlyDataManipulation("topic", DataManipulation.Remove, id: String) =>
+              println(board)
+              println(s"Removing topic ${id}")
+              val x = board.copy(topicsById = topicsById - id)
+              println(x)
+              x
 
             case KeyValueDataManipulation("pin", DataManipulation.Add, timeSlotRoom: String, topicId: String) =>
               val Array(timeSlot: String, room: String) = timeSlotRoom.split("\\|", 2)
@@ -203,8 +207,12 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration) extends Actor wi
 
   private val initializing: Receive = {
     case Initialized(channelId, dataManipulations) =>
+      dataManipulations.foreach(println)
+      val board: Board = Board.fromDataManipulations(dataManipulations)
       val compactedDataManipulations: Seq[DataManipulation] =
-        Board.fromDataManipulations(dataManipulations).compactedDataManipulations
+        board.compactedDataManipulations
+      println(board)
+      compactedDataManipulations.foreach(println)
       for (group: Seq[DataManipulation] <- compactedDataManipulations.grouped(100)) {
         slackApiGet(
           s"${slackBaseUrl}/chat.postMessage?token=${slackToken}&channel=${channelId}&text=${urlEncodedJson(group)}"
@@ -246,15 +254,12 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration) extends Actor wi
         // https://api.slack.com/rtm
 
     case event @ StorageUpdateEvent(newDataManipulations: Seq[DataManipulation]) =>
-//      val newBoard: Board = applyDataManipulations(dataManipulations, board)
-//      if (board != newBoard) {
       for (listener: ActorRef <- listeners) {
         listener ! event
       }
       context.become(
         running(newDataManipulations ++ dataManipulations /* Newest first */, listeners, channelId)
       )
-//      }
 
     case ListenerRegistration(listener: ActorRef) =>
       listener ! StorageUpdateEvent(

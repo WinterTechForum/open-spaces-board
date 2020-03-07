@@ -34,17 +34,18 @@ object DataManipulation {
 
   private val keyOnlyDataManipulationReads: Reads[DataManipulation] =
     (
-      (JsPath \ "type").read[String] and
+      (JsPath \ "type").read[String].filter(_ != "*") and
       (JsPath \ "op").read[Operation] and
       (JsPath \ "key").read[String]
     )(KeyOnlyDataManipulation.apply _)
-  private val dataManipulationMetadataReads: Reads[DataManipulation] =
+  private val allRecordDataManipulationReads: Reads[DataManipulation] =
     (__ \ "op").read[Operation].map(AllRecordDataManipulation.apply)
 
   implicit val reads: Reads[DataManipulation] =
     topicKeyValueDataManipulationReads orElse
     stringKeyValueDataManipulationReads orElse
-    keyOnlyDataManipulationReads
+    keyOnlyDataManipulationReads orElse
+    allRecordDataManipulationReads
   implicit val seqReads: Reads[Seq[DataManipulation]] = Reads.seq(DataManipulation.reads)
 
   implicit val writes: Writes[DataManipulation] = Writes {
