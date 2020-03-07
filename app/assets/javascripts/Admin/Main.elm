@@ -1,6 +1,5 @@
 module Admin exposing (..)
 
-import Date
 import Html exposing (..)
 import Html.Attributes exposing (disabled, type_, value)
 import Html.Events exposing (onClick, onInput)
@@ -24,6 +23,7 @@ type alias Model =
   { webSocketUrl : String
   , rooms : Set String
   , newRoom : String
+  , newRoomValid : Bool
   , timeSlots : Set String
   , newTimeSlot : String
   , newTimeSlotValid : Bool
@@ -43,7 +43,7 @@ type Msg
 -- Init
 init : String -> (Model, Cmd Msg)
 init webSocketBaseUrl =
-  ( Model (webSocketBaseUrl ++ "/store") Set.empty "" Set.empty "" False
+  ( Model (webSocketBaseUrl ++ "/store") Set.empty "" False Set.empty "" False
   , Cmd.none
   )
 
@@ -118,23 +118,28 @@ update msg model =
         )
 
     UpdatedNewRoom newRoom ->
-      ( { model | newRoom = newRoom }
+      ( { model
+        | newRoom = newRoom
+        , newRoomValid = not (newRoom == "" || String.contains "|" newRoom)
+        }
       , Cmd.none
       )
 
     AddRoomRequest ->
-      ( { model | newRoom = "" }
-      , WebSocket.send model.webSocketUrl
-        ( Encode.encode 0
-          ( Encode.list
-            [ Encode.object
-              [ ("type", Encode.string "room")
-              , ("op", Encode.string "+")
-              , ("key", Encode.string model.newRoom)
+      ( { model | newRoom = "", newRoomValid = False }
+      , if not model.newRoomValid then Cmd.none
+        else
+          WebSocket.send model.webSocketUrl
+          ( Encode.encode 0
+            ( Encode.list
+              [ Encode.object
+                [ ("type", Encode.string "room")
+                , ("op", Encode.string "+")
+                , ("key", Encode.string model.newRoom)
+                ]
               ]
-            ]
+            )
           )
-        )
       )
 
     RemoveRoomRequest room ->
@@ -155,31 +160,26 @@ update msg model =
     UpdatedNewTimeSlot newTimeSlot ->
       ( { model
         | newTimeSlot = newTimeSlot
-        , newTimeSlotValid =
-          case Date.fromString newTimeSlot of
-            Ok _ -> True
-            Err _ -> False
+        , newTimeSlotValid = not (newTimeSlot == "" || String.contains "|" newTimeSlot)
         }
       , Cmd.none
       )
 
     AddTimeSlotRequest ->
       ( { model | newTimeSlot = "" }
-      , case Date.fromString model.newTimeSlot of
-          Ok _ ->
-            WebSocket.send model.webSocketUrl
-            ( Encode.encode 0
-              ( Encode.list
-                [ Encode.object
-                  [ ("type", Encode.string "timeSlot")
-                  , ("op", Encode.string "+")
-                  , ("key", Encode.string model.newTimeSlot)
-                  ]
+      , if not model.newTimeSlotValid then Cmd.none
+        else
+          WebSocket.send model.webSocketUrl
+          ( Encode.encode 0
+            ( Encode.list
+              [ Encode.object
+                [ ("type", Encode.string "timeSlot")
+                , ("op", Encode.string "+")
+                , ("key", Encode.string model.newTimeSlot)
                 ]
-              )
+              ]
             )
-          Err _ ->
-            Cmd.none
+          )
       )
 
     RemoveTimeSlotRequest timeSlot ->
@@ -221,7 +221,7 @@ view model =
         ( Set.toList model.rooms )
       ++[ li []
           [ input [ type_ "text", value model.newRoom, onInput UpdatedNewRoom ] []
-          , button [ onClick AddRoomRequest ] [ text "+" ]
+          , button [ onClick AddRoomRequest, disabled (not model.newRoomValid) ] [ text "+" ]
           ]
         ]
       )
