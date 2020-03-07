@@ -50,17 +50,27 @@ object RepositoryActor {
           dataManipulation match {
             case AllRecordDataManipulation(DataManipulation.Remove) => Board()
 
-            case KeyOnlyDataManipulation("room", DataManipulation.Add, room: String) =>
-              board.copy(rooms = rooms + room)
-
-            case KeyOnlyDataManipulation("room", DataManipulation.Remove, room: String) =>
-              board.copy(rooms = rooms - room)
-
             case KeyOnlyDataManipulation("timeSlot", DataManipulation.Add, timeSlot: String) =>
               board.copy(timeSlots = timeSlots + timeSlot)
 
             case KeyOnlyDataManipulation("timeSlot", DataManipulation.Remove, timeSlot: String) =>
-              board.copy(timeSlots = timeSlots - timeSlot)
+              board.copy(
+                timeSlots = timeSlots - timeSlot,
+                topicIdsByTimeSlotRoom = topicIdsByTimeSlotRoom.filter {
+                  case ((pinTimeSlot, _), _) => pinTimeSlot != timeSlot
+                }
+              )
+
+            case KeyOnlyDataManipulation("room", DataManipulation.Add, room: String) =>
+              board.copy(rooms = rooms + room)
+
+            case KeyOnlyDataManipulation("room", DataManipulation.Remove, room: String) =>
+              board.copy(
+                rooms = rooms - room,
+                topicIdsByTimeSlotRoom = topicIdsByTimeSlotRoom.filter {
+                  case ((_, pinRoom), _) => pinRoom != room
+                }
+              )
 
             case KeyValueDataManipulation("topic", DataManipulation.Add, id: String, topic: Topic) =>
               board.copy(topicsById = topicsById + (id -> topic))
@@ -196,7 +206,9 @@ private class RepositoryActor(ws: WSClient, cfg: Configuration) extends Actor wi
       val compactedDataManipulations: Seq[DataManipulation] =
         Board.fromDataManipulations(dataManipulations).compactedDataManipulations
       for (group: Seq[DataManipulation] <- compactedDataManipulations.grouped(100)) {
-        slackApiGet(s"${slackBaseUrl}/chat.postMessage?token=${slackToken}&channel=${channelId}&text=${urlEncodedJson(group)}")
+        slackApiGet(
+          s"${slackBaseUrl}/chat.postMessage?token=${slackToken}&channel=${channelId}&text=${urlEncodedJson(group)}"
+        )
       }
 
       context.become(
