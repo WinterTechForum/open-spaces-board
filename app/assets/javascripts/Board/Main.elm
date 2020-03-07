@@ -34,6 +34,7 @@ type alias Model =
   , topicIdsByTimeSlotRoom : Dict (String, String) String
   , topicsById : Dict String Topic
   , timeSlotRoomsByTopicId : Dict String (String, String)
+  , countTopicAddingDataManipulations : Int
   , workingTopic : Maybe (Maybe (String, String), String, Topic)
   , movingTopicId : Maybe String
   , movingDestinationCandidate : Maybe (String, String)
@@ -58,7 +59,7 @@ type Msg
 init : String -> (Model, Cmd Msg)
 init webSocketBaseUrl =
   ( Model (webSocketBaseUrl ++ "/store")
-    Set.empty Set.empty Dict.empty Dict.empty Dict.empty
+    Set.empty Set.empty Dict.empty Dict.empty Dict.empty 0
     Nothing Nothing Nothing
   , Cmd.none
   )
@@ -101,13 +102,13 @@ update msg model =
         ( case dataManipulationsRes of
             Ok dataManipulations ->
               List.foldr
-              ( \dataManipulation -> \model ->
+              ( \dataManipulation -> \accumModel ->
                 case dataManipulation.type_ of
                   "*" ->
                     case dataManipulation.operation of
-                      Add -> model
+                      Add -> accumModel
                       Remove ->
-                        { model
+                        { accumModel
                         | rooms = Set.empty
                         , timeSlots = Set.empty
                         , topicIdsByTimeSlotRoom = Dict.empty
@@ -118,39 +119,39 @@ update msg model =
                   "timeSlot" ->
                     case dataManipulation.operation of
                       Add ->
-                        { model
-                        | timeSlots = Set.insert dataManipulation.key model.timeSlots
+                        { accumModel
+                        | timeSlots = Set.insert dataManipulation.key accumModel.timeSlots
                         }
                       Remove ->
-                        { model
-                        | timeSlots = Set.remove dataManipulation.key model.timeSlots
+                        { accumModel
+                        | timeSlots = Set.remove dataManipulation.key accumModel.timeSlots
                         , topicIdsByTimeSlotRoom =
                           Dict.filter
                           ( \(timeSlot, _) -> \_ -> timeSlot /= dataManipulation.key )
-                          model.topicIdsByTimeSlotRoom
+                          accumModel.topicIdsByTimeSlotRoom
                         , timeSlotRoomsByTopicId =
                           Dict.filter
                           ( \_ -> \(timeSlot, _) -> timeSlot /= dataManipulation.key )
-                          model.timeSlotRoomsByTopicId
+                          accumModel.timeSlotRoomsByTopicId
                         }
 
                   "room" ->
                     case dataManipulation.operation of
                       Add ->
-                        { model
-                        | rooms = Set.insert dataManipulation.key model.rooms
+                        { accumModel
+                        | rooms = Set.insert dataManipulation.key accumModel.rooms
                         }
                       Remove ->
-                        { model
-                        | rooms = Set.remove dataManipulation.key model.rooms
+                        { accumModel
+                        | rooms = Set.remove dataManipulation.key accumModel.rooms
                         , topicIdsByTimeSlotRoom =
                           Dict.filter
                           ( \(_, room) -> \_ -> room /= dataManipulation.key )
-                          model.topicIdsByTimeSlotRoom
+                          accumModel.topicIdsByTimeSlotRoom
                         , timeSlotRoomsByTopicId =
                           Dict.filter
                           ( \_ -> \(_, room) -> room /= dataManipulation.key )
-                          model.timeSlotRoomsByTopicId
+                          accumModel.timeSlotRoomsByTopicId
                         }
 
                   "topic" ->
@@ -160,14 +161,16 @@ update msg model =
                           Just value ->
                             case Decode.decodeValue topicDecoder value of
                               Ok topic ->
-                                { model
-                                | topicsById = Dict.insert dataManipulation.key topic model.topicsById
+                                { accumModel
+                                | topicsById = Dict.insert dataManipulation.key topic accumModel.topicsById
+                                -- Note use of `model` here - incrementing by 1 regardless of # of new topics
+                                , countTopicAddingDataManipulations = model.countTopicAddingDataManipulations + 1
                                 }
-                              Err _ -> model
-                          Nothing -> model
+                              Err _ -> accumModel
+                          Nothing -> accumModel
                       Remove ->
-                        { model
-                        | topicsById = Dict.remove dataManipulation.key model.topicsById
+                        { accumModel
+                        | topicsById = Dict.remove dataManipulation.key accumModel.topicsById
                         }
 
                   "pin" ->
@@ -179,29 +182,29 @@ update msg model =
                               [ timeSlot, room ] ->
                                 let
                                   (unpinnedTopicIdsByTimeSlotRoom, displacedTimeSlotRoomsByTopicId) =
-                                    case Dict.get topicId model.timeSlotRoomsByTopicId of
+                                    case Dict.get topicId accumModel.timeSlotRoomsByTopicId of
                                       Just oldTimeSlotRoom ->
-                                        case Dict.get (timeSlot, room) model.topicIdsByTimeSlotRoom of
+                                        case Dict.get (timeSlot, room) accumModel.topicIdsByTimeSlotRoom of
                                           Just displacedTopicId ->
-                                            ( Dict.insert oldTimeSlotRoom displacedTopicId model.topicIdsByTimeSlotRoom
-                                            , Dict.remove displacedTopicId model.timeSlotRoomsByTopicId
+                                            ( Dict.insert oldTimeSlotRoom displacedTopicId accumModel.topicIdsByTimeSlotRoom
+                                            , Dict.remove displacedTopicId accumModel.timeSlotRoomsByTopicId
                                             )
                                           Nothing ->
-                                            ( Dict.remove oldTimeSlotRoom model.topicIdsByTimeSlotRoom
-                                            , model.timeSlotRoomsByTopicId
+                                            ( Dict.remove oldTimeSlotRoom accumModel.topicIdsByTimeSlotRoom
+                                            , accumModel.timeSlotRoomsByTopicId
                                             )
                                       Nothing ->
-                                        case Dict.get (timeSlot, room) model.topicIdsByTimeSlotRoom of
+                                        case Dict.get (timeSlot, room) accumModel.topicIdsByTimeSlotRoom of
                                           Just displacedTopicId ->
-                                            ( model.topicIdsByTimeSlotRoom
-                                            , Dict.remove displacedTopicId model.timeSlotRoomsByTopicId
+                                            ( accumModel.topicIdsByTimeSlotRoom
+                                            , Dict.remove displacedTopicId accumModel.timeSlotRoomsByTopicId
                                             )
                                           Nothing ->
-                                            ( model.topicIdsByTimeSlotRoom
-                                            , model.timeSlotRoomsByTopicId
+                                            ( accumModel.topicIdsByTimeSlotRoom
+                                            , accumModel.timeSlotRoomsByTopicId
                                             )
                                 in
-                                  { model
+                                  { accumModel
                                   | topicIdsByTimeSlotRoom =
                                     Dict.insert
                                     (timeSlot, room)
@@ -213,11 +216,11 @@ update msg model =
                                     (timeSlot, room)
                                     displacedTimeSlotRoomsByTopicId
                                   }
-                              _ -> model
-                          Err _ -> model
-                      Nothing -> model
+                              _ -> accumModel
+                          Err _ -> accumModel
+                      Nothing -> accumModel
 
-                  _ -> model
+                  _ -> accumModel
               )
               model
               dataManipulations
@@ -480,6 +483,15 @@ view model =
               ( Set.fromList (Dict.keys model.topicsById) )
               ( Set.fromList (Dict.keys model.timeSlotRoomsByTopicId) )
             )
+          )
+        )
+      , div []
+        ( List.repeat model.countTopicAddingDataManipulations
+          ( node "script"
+            [ type_ "application/javascript"
+            , src "http://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"
+            ]
+            []
           )
         )
       ]

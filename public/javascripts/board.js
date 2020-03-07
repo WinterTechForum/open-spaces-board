@@ -9379,24 +9379,32 @@ var _WinterTechForum$open_spaces_board$Board$topicDecoder = A3(
 	_WinterTechForum$open_spaces_board$Board$Topic,
 	A2(_elm_lang$core$Json_Decode$field, 'text', _elm_lang$core$Json_Decode$string),
 	A2(_elm_lang$core$Json_Decode$field, 'convener', _elm_lang$core$Json_Decode$string));
-var _WinterTechForum$open_spaces_board$Board$Model = F9(
-	function (a, b, c, d, e, f, g, h, i) {
-		return {webSocketUrl: a, rooms: b, timeSlots: c, topicIdsByTimeSlotRoom: d, topicsById: e, timeSlotRoomsByTopicId: f, workingTopic: g, movingTopicId: h, movingDestinationCandidate: i};
-	});
+var _WinterTechForum$open_spaces_board$Board$Model = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return {webSocketUrl: a, rooms: b, timeSlots: c, topicIdsByTimeSlotRoom: d, topicsById: e, timeSlotRoomsByTopicId: f, countTopicAddingDataManipulations: g, workingTopic: h, movingTopicId: i, movingDestinationCandidate: j};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
 var _WinterTechForum$open_spaces_board$Board$init = function (webSocketBaseUrl) {
 	return {
 		ctor: '_Tuple2',
-		_0: A9(
-			_WinterTechForum$open_spaces_board$Board$Model,
-			A2(_elm_lang$core$Basics_ops['++'], webSocketBaseUrl, '/store'),
-			_elm_lang$core$Set$empty,
-			_elm_lang$core$Set$empty,
-			_elm_lang$core$Dict$empty,
-			_elm_lang$core$Dict$empty,
-			_elm_lang$core$Dict$empty,
-			_elm_lang$core$Maybe$Nothing,
-			_elm_lang$core$Maybe$Nothing,
-			_elm_lang$core$Maybe$Nothing),
+		_0: _WinterTechForum$open_spaces_board$Board$Model(
+			A2(_elm_lang$core$Basics_ops['++'], webSocketBaseUrl, '/store'))(_elm_lang$core$Set$empty)(_elm_lang$core$Set$empty)(_elm_lang$core$Dict$empty)(_elm_lang$core$Dict$empty)(_elm_lang$core$Dict$empty)(0)(_elm_lang$core$Maybe$Nothing)(_elm_lang$core$Maybe$Nothing)(_elm_lang$core$Maybe$Nothing),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
@@ -9437,31 +9445,31 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 							return A3(
 								_elm_lang$core$List$foldr,
 								F2(
-									function (dataManipulation, model) {
+									function (dataManipulation, accumModel) {
 										var _p3 = dataManipulation.type_;
 										switch (_p3) {
 											case '*':
 												var _p4 = dataManipulation.operation;
 												if (_p4.ctor === 'Add') {
-													return model;
+													return accumModel;
 												} else {
 													return _elm_lang$core$Native_Utils.update(
-														model,
+														accumModel,
 														{rooms: _elm_lang$core$Set$empty, timeSlots: _elm_lang$core$Set$empty, topicIdsByTimeSlotRoom: _elm_lang$core$Dict$empty, topicsById: _elm_lang$core$Dict$empty, timeSlotRoomsByTopicId: _elm_lang$core$Dict$empty});
 												}
 											case 'timeSlot':
 												var _p5 = dataManipulation.operation;
 												if (_p5.ctor === 'Add') {
 													return _elm_lang$core$Native_Utils.update(
-														model,
+														accumModel,
 														{
-															timeSlots: A2(_elm_lang$core$Set$insert, dataManipulation.key, model.timeSlots)
+															timeSlots: A2(_elm_lang$core$Set$insert, dataManipulation.key, accumModel.timeSlots)
 														});
 												} else {
 													return _elm_lang$core$Native_Utils.update(
-														model,
+														accumModel,
 														{
-															timeSlots: A2(_elm_lang$core$Set$remove, dataManipulation.key, model.timeSlots),
+															timeSlots: A2(_elm_lang$core$Set$remove, dataManipulation.key, accumModel.timeSlots),
 															topicIdsByTimeSlotRoom: A2(
 																_elm_lang$core$Dict$filter,
 																F2(
@@ -9469,7 +9477,7 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 																		var _p8 = _p7;
 																		return !_elm_lang$core$Native_Utils.eq(_p8._0, dataManipulation.key);
 																	}),
-																model.topicIdsByTimeSlotRoom),
+																accumModel.topicIdsByTimeSlotRoom),
 															timeSlotRoomsByTopicId: A2(
 																_elm_lang$core$Dict$filter,
 																F2(
@@ -9477,22 +9485,22 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 																		var _p11 = _p9;
 																		return !_elm_lang$core$Native_Utils.eq(_p11._0, dataManipulation.key);
 																	}),
-																model.timeSlotRoomsByTopicId)
+																accumModel.timeSlotRoomsByTopicId)
 														});
 												}
 											case 'room':
 												var _p12 = dataManipulation.operation;
 												if (_p12.ctor === 'Add') {
 													return _elm_lang$core$Native_Utils.update(
-														model,
+														accumModel,
 														{
-															rooms: A2(_elm_lang$core$Set$insert, dataManipulation.key, model.rooms)
+															rooms: A2(_elm_lang$core$Set$insert, dataManipulation.key, accumModel.rooms)
 														});
 												} else {
 													return _elm_lang$core$Native_Utils.update(
-														model,
+														accumModel,
 														{
-															rooms: A2(_elm_lang$core$Set$remove, dataManipulation.key, model.rooms),
+															rooms: A2(_elm_lang$core$Set$remove, dataManipulation.key, accumModel.rooms),
 															topicIdsByTimeSlotRoom: A2(
 																_elm_lang$core$Dict$filter,
 																F2(
@@ -9500,7 +9508,7 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 																		var _p15 = _p14;
 																		return !_elm_lang$core$Native_Utils.eq(_p15._1, dataManipulation.key);
 																	}),
-																model.topicIdsByTimeSlotRoom),
+																accumModel.topicIdsByTimeSlotRoom),
 															timeSlotRoomsByTopicId: A2(
 																_elm_lang$core$Dict$filter,
 																F2(
@@ -9508,7 +9516,7 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 																		var _p18 = _p16;
 																		return !_elm_lang$core$Native_Utils.eq(_p18._1, dataManipulation.key);
 																	}),
-																model.timeSlotRoomsByTopicId)
+																accumModel.timeSlotRoomsByTopicId)
 														});
 												}
 											case 'topic':
@@ -9519,21 +9527,22 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 														var _p21 = A2(_elm_lang$core$Json_Decode$decodeValue, _WinterTechForum$open_spaces_board$Board$topicDecoder, _p20._0);
 														if (_p21.ctor === 'Ok') {
 															return _elm_lang$core$Native_Utils.update(
-																model,
+																accumModel,
 																{
-																	topicsById: A3(_elm_lang$core$Dict$insert, dataManipulation.key, _p21._0, model.topicsById)
+																	topicsById: A3(_elm_lang$core$Dict$insert, dataManipulation.key, _p21._0, accumModel.topicsById),
+																	countTopicAddingDataManipulations: model.countTopicAddingDataManipulations + 1
 																});
 														} else {
-															return model;
+															return accumModel;
 														}
 													} else {
-														return model;
+														return accumModel;
 													}
 												} else {
 													return _elm_lang$core$Native_Utils.update(
-														model,
+														accumModel,
 														{
-															topicsById: A2(_elm_lang$core$Dict$remove, dataManipulation.key, model.topicsById)
+															topicsById: A2(_elm_lang$core$Dict$remove, dataManipulation.key, accumModel.topicsById)
 														});
 												}
 											case 'pin':
@@ -9547,47 +9556,47 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 															var _p32 = _p24._0;
 															var _p31 = _p24._1._0;
 															var _p25 = function () {
-																var _p26 = A2(_elm_lang$core$Dict$get, _p33, model.timeSlotRoomsByTopicId);
+																var _p26 = A2(_elm_lang$core$Dict$get, _p33, accumModel.timeSlotRoomsByTopicId);
 																if (_p26.ctor === 'Just') {
 																	var _p29 = _p26._0;
 																	var _p27 = A2(
 																		_elm_lang$core$Dict$get,
 																		{ctor: '_Tuple2', _0: _p32, _1: _p31},
-																		model.topicIdsByTimeSlotRoom);
+																		accumModel.topicIdsByTimeSlotRoom);
 																	if (_p27.ctor === 'Just') {
 																		var _p28 = _p27._0;
 																		return {
 																			ctor: '_Tuple2',
-																			_0: A3(_elm_lang$core$Dict$insert, _p29, _p28, model.topicIdsByTimeSlotRoom),
-																			_1: A2(_elm_lang$core$Dict$remove, _p28, model.timeSlotRoomsByTopicId)
+																			_0: A3(_elm_lang$core$Dict$insert, _p29, _p28, accumModel.topicIdsByTimeSlotRoom),
+																			_1: A2(_elm_lang$core$Dict$remove, _p28, accumModel.timeSlotRoomsByTopicId)
 																		};
 																	} else {
 																		return {
 																			ctor: '_Tuple2',
-																			_0: A2(_elm_lang$core$Dict$remove, _p29, model.topicIdsByTimeSlotRoom),
-																			_1: model.timeSlotRoomsByTopicId
+																			_0: A2(_elm_lang$core$Dict$remove, _p29, accumModel.topicIdsByTimeSlotRoom),
+																			_1: accumModel.timeSlotRoomsByTopicId
 																		};
 																	}
 																} else {
 																	var _p30 = A2(
 																		_elm_lang$core$Dict$get,
 																		{ctor: '_Tuple2', _0: _p32, _1: _p31},
-																		model.topicIdsByTimeSlotRoom);
+																		accumModel.topicIdsByTimeSlotRoom);
 																	if (_p30.ctor === 'Just') {
 																		return {
 																			ctor: '_Tuple2',
-																			_0: model.topicIdsByTimeSlotRoom,
-																			_1: A2(_elm_lang$core$Dict$remove, _p30._0, model.timeSlotRoomsByTopicId)
+																			_0: accumModel.topicIdsByTimeSlotRoom,
+																			_1: A2(_elm_lang$core$Dict$remove, _p30._0, accumModel.timeSlotRoomsByTopicId)
 																		};
 																	} else {
-																		return {ctor: '_Tuple2', _0: model.topicIdsByTimeSlotRoom, _1: model.timeSlotRoomsByTopicId};
+																		return {ctor: '_Tuple2', _0: accumModel.topicIdsByTimeSlotRoom, _1: accumModel.timeSlotRoomsByTopicId};
 																	}
 																}
 															}();
 															var unpinnedTopicIdsByTimeSlotRoom = _p25._0;
 															var displacedTimeSlotRoomsByTopicId = _p25._1;
 															return _elm_lang$core$Native_Utils.update(
-																model,
+																accumModel,
 																{
 																	topicIdsByTimeSlotRoom: A3(
 																		_elm_lang$core$Dict$insert,
@@ -9601,16 +9610,16 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 																		displacedTimeSlotRoomsByTopicId)
 																});
 														} else {
-															return model;
+															return accumModel;
 														}
 													} else {
-														return model;
+														return accumModel;
 													}
 												} else {
-													return model;
+													return accumModel;
 												}
 											default:
-												return model;
+												return accumModel;
 										}
 									}),
 								model,
@@ -10384,7 +10393,29 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 											_elm_lang$core$Dict$keys(model.topicsById)),
 										_elm_lang$core$Set$fromList(
 											_elm_lang$core$Dict$keys(model.timeSlotRoomsByTopicId)))))),
-						_1: {ctor: '[]'}
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$div,
+								{ctor: '[]'},
+								A2(
+									_elm_lang$core$List$repeat,
+									model.countTopicAddingDataManipulations,
+									A3(
+										_elm_lang$html$Html$node,
+										'script',
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html_Attributes$type_('application/javascript'),
+											_1: {
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$src('http://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js'),
+												_1: {ctor: '[]'}
+											}
+										},
+										{ctor: '[]'}))),
+							_1: {ctor: '[]'}
+						}
 					}
 				}
 			});
