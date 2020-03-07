@@ -9379,32 +9379,24 @@ var _WinterTechForum$open_spaces_board$Board$topicDecoder = A3(
 	_WinterTechForum$open_spaces_board$Board$Topic,
 	A2(_elm_lang$core$Json_Decode$field, 'text', _elm_lang$core$Json_Decode$string),
 	A2(_elm_lang$core$Json_Decode$field, 'convener', _elm_lang$core$Json_Decode$string));
-var _WinterTechForum$open_spaces_board$Board$Model = function (a) {
-	return function (b) {
-		return function (c) {
-			return function (d) {
-				return function (e) {
-					return function (f) {
-						return function (g) {
-							return function (h) {
-								return function (i) {
-									return function (j) {
-										return {webSocketUrl: a, rooms: b, timeSlots: c, topicIdsByTimeSlotRoom: d, topicsById: e, timeSlotRoomsByTopicId: f, countTopicAddingDataManipulations: g, workingTopic: h, movingTopicId: i, movingDestinationCandidate: j};
-									};
-								};
-							};
-						};
-					};
-				};
-			};
-		};
-	};
-};
+var _WinterTechForum$open_spaces_board$Board$Model = F9(
+	function (a, b, c, d, e, f, g, h, i) {
+		return {webSocketUrl: a, rooms: b, timeSlots: c, topicIdsByTimeSlotRoom: d, topicsById: e, timeSlotRoomsByTopicId: f, workingTopic: g, movingTopicId: h, movingDestinationCandidate: i};
+	});
 var _WinterTechForum$open_spaces_board$Board$init = function (webSocketBaseUrl) {
 	return {
 		ctor: '_Tuple2',
-		_0: _WinterTechForum$open_spaces_board$Board$Model(
-			A2(_elm_lang$core$Basics_ops['++'], webSocketBaseUrl, '/store'))(_elm_lang$core$Set$empty)(_elm_lang$core$Set$empty)(_elm_lang$core$Dict$empty)(_elm_lang$core$Dict$empty)(_elm_lang$core$Dict$empty)(0)(_elm_lang$core$Maybe$Nothing)(_elm_lang$core$Maybe$Nothing)(_elm_lang$core$Maybe$Nothing),
+		_0: A9(
+			_WinterTechForum$open_spaces_board$Board$Model,
+			A2(_elm_lang$core$Basics_ops['++'], webSocketBaseUrl, '/store'),
+			_elm_lang$core$Set$empty,
+			_elm_lang$core$Set$empty,
+			_elm_lang$core$Dict$empty,
+			_elm_lang$core$Dict$empty,
+			_elm_lang$core$Dict$empty,
+			_elm_lang$core$Maybe$Nothing,
+			_elm_lang$core$Maybe$Nothing,
+			_elm_lang$core$Maybe$Nothing),
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 };
@@ -9529,8 +9521,7 @@ var _WinterTechForum$open_spaces_board$Board$update = F2(
 															return _elm_lang$core$Native_Utils.update(
 																accumModel,
 																{
-																	topicsById: A3(_elm_lang$core$Dict$insert, dataManipulation.key, _p21._0, accumModel.topicsById),
-																	countTopicAddingDataManipulations: model.countTopicAddingDataManipulations + 1
+																	topicsById: A3(_elm_lang$core$Dict$insert, dataManipulation.key, _p21._0, accumModel.topicsById)
 																});
 														} else {
 															return accumModel;
@@ -10395,25 +10386,19 @@ var _WinterTechForum$open_spaces_board$Board$view = function (model) {
 											_elm_lang$core$Dict$keys(model.timeSlotRoomsByTopicId)))))),
 						_1: {
 							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$div,
-								{ctor: '[]'},
-								A2(
-									_elm_lang$core$List$repeat,
-									model.countTopicAddingDataManipulations,
-									A3(
-										_elm_lang$html$Html$node,
-										'script',
-										{
-											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$type_('application/javascript'),
-											_1: {
-												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$src('http://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js'),
-												_1: {ctor: '[]'}
-											}
-										},
-										{ctor: '[]'}))),
+							_0: A3(
+								_elm_lang$html$Html$node,
+								'script',
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$type_('application/javascript'),
+									_1: {
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$src('http://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js'),
+										_1: {ctor: '[]'}
+									}
+								},
+								{ctor: '[]'}),
 							_1: {ctor: '[]'}
 						}
 					}
