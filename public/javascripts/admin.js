@@ -9463,19 +9463,28 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 						var _p2 = dataManipulationsRes;
 						if (_p2.ctor === 'Ok') {
 							return A3(
-								_elm_lang$core$List$foldl,
+								_elm_lang$core$List$foldr,
 								F2(
 									function (dataManipulation, model) {
 										var _p3 = dataManipulation.type_;
 										switch (_p3) {
+											case '*':
+												var _p4 = dataManipulation.operation;
+												if (_p4.ctor === 'Add') {
+													return model;
+												} else {
+													return _elm_lang$core$Native_Utils.update(
+														model,
+														{rooms: _elm_lang$core$Set$empty, timeSlots: _elm_lang$core$Set$empty});
+												}
 											case 'room':
 												var rooms = model.rooms;
 												return _elm_lang$core$Native_Utils.update(
 													model,
 													{
 														rooms: function () {
-															var _p4 = dataManipulation.operation;
-															if (_p4.ctor === 'Add') {
+															var _p5 = dataManipulation.operation;
+															if (_p5.ctor === 'Add') {
 																return A2(_elm_lang$core$Set$insert, dataManipulation.key, rooms);
 															} else {
 																return A2(_elm_lang$core$Set$remove, dataManipulation.key, rooms);
@@ -9488,8 +9497,8 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 													model,
 													{
 														timeSlots: function () {
-															var _p5 = dataManipulation.operation;
-															if (_p5.ctor === 'Add') {
+															var _p6 = dataManipulation.operation;
+															if (_p6.ctor === 'Add') {
 																return A2(_elm_lang$core$Set$insert, dataManipulation.key, timeSlots);
 															} else {
 																return A2(_elm_lang$core$Set$remove, dataManipulation.key, timeSlots);
@@ -9603,16 +9612,16 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 								})))
 				};
 			case 'UpdatedNewTimeSlot':
-				var _p7 = _p1._0;
+				var _p8 = _p1._0;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
 						{
-							newTimeSlot: _p7,
+							newTimeSlot: _p8,
 							newTimeSlotValid: function () {
-								var _p6 = _elm_lang$core$Date$fromString(_p7);
-								if (_p6.ctor === 'Ok') {
+								var _p7 = _elm_lang$core$Date$fromString(_p8);
+								if (_p7.ctor === 'Ok') {
 									return true;
 								} else {
 									return false;
@@ -9628,8 +9637,8 @@ var _WinterTechForum$open_spaces_board$Admin$update = F2(
 						model,
 						{newTimeSlot: ''}),
 					_1: function () {
-						var _p8 = _elm_lang$core$Date$fromString(model.newTimeSlot);
-						if (_p8.ctor === 'Ok') {
+						var _p9 = _elm_lang$core$Date$fromString(model.newTimeSlot);
+						if (_p9.ctor === 'Ok') {
 							return A2(
 								_elm_lang$websocket$WebSocket$send,
 								model.webSocketUrl,

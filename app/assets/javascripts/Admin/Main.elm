@@ -75,9 +75,18 @@ update msg model =
       in
         ( case dataManipulationsRes of
             Ok dataManipulations ->
-              List.foldl
+              List.foldr
               ( \dataManipulation -> \model ->
                 case dataManipulation.type_ of
+                  "*" ->
+                    case dataManipulation.operation of
+                      Add -> model
+                      Remove ->
+                        { model
+                        | rooms = Set.empty
+                        , timeSlots = Set.empty
+                        }
+
                   "room" ->
                     let
                       rooms : Set String
@@ -157,7 +166,7 @@ update msg model =
     AddTimeSlotRequest ->
       ( { model | newTimeSlot = "" }
       , case Date.fromString model.newTimeSlot of
-          Ok date ->
+          Ok _ ->
             WebSocket.send model.webSocketUrl
             ( Encode.encode 0
               ( Encode.list
