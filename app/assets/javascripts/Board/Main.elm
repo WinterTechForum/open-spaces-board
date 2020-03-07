@@ -489,7 +489,7 @@ view model =
         ( List.repeat model.countTopicAddingDataManipulations
           ( node "script"
             [ type_ "application/javascript"
-            , src "http://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"
+            , src "https://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"
             ]
             []
           )
