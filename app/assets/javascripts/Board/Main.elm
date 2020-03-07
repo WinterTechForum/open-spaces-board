@@ -115,21 +115,43 @@ update msg model =
                         , timeSlotRoomsByTopicId = Dict.empty
                         }
 
-                  "room" ->
-                    { model
-                    | rooms =
-                      case dataManipulation.operation of
-                        Add -> Set.insert dataManipulation.key model.rooms
-                        Remove -> Set.remove dataManipulation.key model.rooms
-                    }
-
                   "timeSlot" ->
-                    { model
-                    | timeSlots =
-                      case dataManipulation.operation of
-                        Add -> Set.insert dataManipulation.key model.timeSlots
-                        Remove -> Set.remove dataManipulation.key model.timeSlots
-                    }
+                    case dataManipulation.operation of
+                      Add ->
+                        { model
+                        | timeSlots = Set.insert dataManipulation.key model.timeSlots
+                        }
+                      Remove ->
+                        { model
+                        | timeSlots = Set.remove dataManipulation.key model.timeSlots
+                        , topicIdsByTimeSlotRoom =
+                          Dict.filter
+                          ( \(timeSlot, _) -> \_ -> timeSlot /= dataManipulation.key )
+                          model.topicIdsByTimeSlotRoom
+                        , timeSlotRoomsByTopicId =
+                          Dict.filter
+                          ( \_ -> \(timeSlot, _) -> timeSlot /= dataManipulation.key )
+                          model.timeSlotRoomsByTopicId
+                        }
+
+                  "room" ->
+                    case dataManipulation.operation of
+                      Add ->
+                        { model
+                        | rooms = Set.insert dataManipulation.key model.rooms
+                        }
+                      Remove ->
+                        { model
+                        | rooms = Set.remove dataManipulation.key model.rooms
+                        , topicIdsByTimeSlotRoom =
+                          Dict.filter
+                          ( \(_, room) -> \_ -> room /= dataManipulation.key )
+                          model.topicIdsByTimeSlotRoom
+                        , timeSlotRoomsByTopicId =
+                          Dict.filter
+                          ( \_ -> \(_, room) -> room /= dataManipulation.key )
+                          model.timeSlotRoomsByTopicId
+                        }
 
                   "topic" ->
                     case dataManipulation.operation of
