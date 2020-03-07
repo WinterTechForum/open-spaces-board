@@ -34,6 +34,7 @@ type alias Model =
   , topicIdsByTimeSlotRoom : Dict (String, String) String
   , topicsById : Dict String Topic
   , timeSlotRoomsByTopicId : Dict String (String, String)
+  , countTopicAddingDataManipulations : Int
   , workingTopic : Maybe (Maybe (String, String), String, Topic)
   , movingTopicId : Maybe String
   , movingDestinationCandidate : Maybe (String, String)
@@ -58,7 +59,7 @@ type Msg
 init : String -> (Model, Cmd Msg)
 init webSocketBaseUrl =
   ( Model (webSocketBaseUrl ++ "/store")
-    Set.empty Set.empty Dict.empty Dict.empty Dict.empty
+    Set.empty Set.empty Dict.empty Dict.empty Dict.empty 0
     Nothing Nothing Nothing
   , Cmd.none
   )
@@ -162,6 +163,8 @@ update msg model =
                               Ok topic ->
                                 { accumModel
                                 | topicsById = Dict.insert dataManipulation.key topic accumModel.topicsById
+                                -- Note use of `model` here - incrementing by 1 regardless of # of new topics
+                                , countTopicAddingDataManipulations = model.countTopicAddingDataManipulations + 1
                                 }
                               Err _ -> accumModel
                           Nothing -> accumModel
@@ -482,12 +485,14 @@ view model =
             )
           )
         )
-      , ( node "script"
-          [ type_ "application/javascript"
-          -- This makes HTML5 drag and drop work in certain mobile browsers (though not Safari)
-          , src "http://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"
-          ]
-          []
+      , div []
+        ( List.repeat model.countTopicAddingDataManipulations
+          ( node "script"
+            [ type_ "application/javascript"
+            , src "http://bernardo-castilho.github.io/DragDropTouch/DragDropTouch.js"
+            ]
+            []
+          )
         )
       ]
 
